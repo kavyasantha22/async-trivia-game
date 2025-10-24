@@ -105,7 +105,7 @@ class Server:
         try:
             server = await asyncio.start_server(self._handle_client, host=self._host, port=self._port)
         except Exception as e:
-            print(e)
+            print("server.py: Binding to port <port> was unsuccessful")
             return
 
         addrs = ", ".join(str(s.getsockname()) for s in server.sockets or [])
@@ -440,7 +440,7 @@ def load_config(path: Path) -> Server:
 
 def parse_config_path() -> Path:
     def _missing_config() -> None:
-        sys.stderr.write("client.py: Configuration not provided\n")
+        sys.stderr.write("server.py: Configuration not provided\n")
         sys.exit(1)
 
     if len(sys.argv) != 3 or sys.argv[1] != "--config":
@@ -448,7 +448,7 @@ def parse_config_path() -> Path:
 
     config_path = Path(sys.argv[2])
     if not config_path.exists():
-        sys.stderr.write(f"client.py: File {config_path} does not exist")
+        sys.stderr.write(f"server.py: File {config_path} does not exist")
         sys.exit(1)
     return config_path
 
