@@ -4,3 +4,4 @@ include/*
 __pycache__/*
 lib/*
 *.json
+socket_practice/*
