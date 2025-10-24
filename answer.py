@@ -1,5 +1,5 @@
 
-def generate_answer(question_type, short_question):
+def generate_answer(question_type, short_question) -> str:
     if question_type == "Usable IP Addresses of a Subnet":
         return _generate_usable_ipv4_answer(short_question)
     elif question_type == "Network and Broadcast Address of a Subnet":
@@ -10,7 +10,8 @@ def generate_answer(question_type, short_question):
         return _generate_mathematics_answer(short_question)
     else:
         print("Unrecognised question type.")
-
+        print(question_type)
+        return ""
 
 def _generate_mathematics_answer(short_question):
     ans = 0
@@ -34,7 +35,7 @@ def _generate_mathematics_answer(short_question):
                 ans += (-1) * int(cur)
                 
             cur = ""
-            pos = True
+            pos = False
         else:
             cur += char
     

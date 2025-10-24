@@ -1,25 +1,26 @@
 import socket
+import asyncio
+from helper import send_message, receive_message
 
 
-ip_addr = "0.0.0.0"
-port = 7777
+async def handle_client(reader, writer):
+    peer = writer.get_extra_info("peername")
+    print(f"[+] connection from {peer}")
+    msg = await receive_message(reader)
+    print(msg['message_type'])
+    print(msg['username'])
+    
 
-csocket = socket.socket()
-csocket.bind((ip_addr, port))
-csocket.listen(1)
+async def start():
+    server = await asyncio.start_server(handle_client, "0.0.0.0", port=7777)
+    addrs = ", ".join(str(s.getsockname()) for s in server.sockets or [])
+    print(addrs)
+    async with server:
+        await server.serve_forever()
 
-print(f"Listening on {ip_addr}:{port}")
+asyncio.run(start())
 
-client1, _ = csocket.accept()
-print("peer: " + str(client1.getpeername()))
-print("local: " + str(client1.getsockname()))
 
-data = client1.recv(1024)
-if data:
-    print(f"Received: {data.decode()}")
-    client1.sendall(b"your message is received.")
-
-client1.close()
 
 
 

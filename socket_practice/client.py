@@ -1,17 +1,22 @@
 import socket
+import asyncio
+from helper import send_message, receive_message
 
 
 server_addr = "127.0.0.1"
 server_port = 7777
 
-s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-s.connect((server_addr, server_port))
+async def connect():    
+    reader, writer = await asyncio.open_connection(server_addr, int(server_port))
+    print(reader, writer)
+    msg = {
+        "message_type": "HI",
+        "username": "test1"
+    }
+    print(msg)
+    await send_message(writer, msg)
 
-s.sendall(b"hello server")
-data = s.recv(1024) 
-print("Received:", data.decode())
-
-s.close()
+asyncio.run(connect())
 
 
 
