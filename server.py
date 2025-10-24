@@ -105,7 +105,7 @@ class Server:
         try:
             server = await asyncio.start_server(self._handle_client, host=self._host, port=self._port)
         except Exception as e:
-            sys.stderr.write("server.py: Binding to port <port> was unsuccessful\n")
+            sys.stderr.write(f"server.py: Binding to port {self._port} was unsuccessful\n")
             return
 
         addrs = ", ".join(str(s.getsockname()) for s in server.sockets or [])
