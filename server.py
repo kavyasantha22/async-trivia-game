@@ -15,10 +15,10 @@ import json
 from pathlib import Path
 import logging
 
-logging.basicConfig(
-    level=logging.DEBUG,
-    format="%(asctime)s %(levelname)s %(name)s: %(message)s",
-)
+# logging.basicConfig(
+#     level=logging.DEBUG,
+#     format="%(asctime)s %(levelname)s %(name)s: %(message)s",
+# )
 
 
 
@@ -456,12 +456,13 @@ def parse_config_path() -> Path:
 async def main():
     config_path = parse_config_path()
     server = load_config(config_path)
-    asyncio.get_running_loop().set_debug(True)
+    # asyncio.get_running_loop().set_debug(True)
 
     await server.start()
     
 
 if __name__ == "__main__":
-    asyncio.run(main(),debug=True)
+    asyncio.run(main())
+    # asyncio.run(main(),debug=True)
     
         
