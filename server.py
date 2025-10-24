@@ -105,7 +105,7 @@ class Server:
         try:
             server = await asyncio.start_server(self._handle_client, host=self._host, port=self._port)
         except Exception as e:
-            print("server.py: Binding to port <port> was unsuccessful")
+            sys.stderr.write("server.py: Binding to port <port> was unsuccessful\n")
             return
 
         addrs = ", ".join(str(s.getsockname()) for s in server.sockets or [])
@@ -448,7 +448,7 @@ def parse_config_path() -> Path:
 
     config_path = Path(sys.argv[2])
     if not config_path.exists():
-        sys.stderr.write(f"server.py: File {config_path} does not exist")
+        sys.stderr.write(f"server.py: File {config_path} does not exist\n")
         sys.exit(1)
     return config_path
 
