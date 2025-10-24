@@ -69,7 +69,7 @@ class Client:
         
         ready_msg = await receive_message(self.reader)
         if ready_msg['message_type'] == "READY":
-            sys.stdout.write(ready_msg['info'])
+            print(ready_msg['info'])
         else:
             print("Other type of message is received???")
 
@@ -77,7 +77,7 @@ class Client:
             print(2)
             recv_msg = await receive_message(self.reader)
             if recv_msg['message_type'] == "QUESTION":
-                sys.stdout.write(recv_msg["trivia_question"])
+                print(recv_msg["trivia_question"])
 
                 qtimeout = recv_msg["time_limit"]
                 answer = await self.construct_answer_message(recv_msg, qtimeout)
@@ -85,21 +85,21 @@ class Client:
                     await send_message(self.writer, answer)
 
             elif recv_msg['message_type'] == "RESULT":
-                sys.stdout.write(recv_msg['feedback'])
+                print(recv_msg['feedback'])
 
             elif recv_msg['message_type'] == "LEADERBOARD":
-                sys.stdout.write(recv_msg["state"])
+                print(recv_msg["state"])
 
             elif recv_msg['message_type'] == "FINISHED":
-                sys.stdout.write(recv_msg["final_standings"])
+                print(recv_msg["final_standings"])
                 await self.disconnect()
                 break
 
             elif recv_msg['message_type'] == "READY":
-                sys.stdout.write(recv_msg["info"])
+                print(recv_msg["info"])
 
             else:
-                sys.stdout.write("Not recognised message type")
+                print("Not recognised message type")
 
         while not self.connected:
             pass
@@ -160,7 +160,7 @@ async def get_input(timeout = None, message : str | None = None, client : Client
     if message is not None:
         print(message)
 
-    inp = await asyncio.to_thread(input, "> ")
+    inp = await asyncio.to_thread(input)
     if inp == "EXIT":
         if client is not None:
             await client.disconnect()
@@ -191,7 +191,7 @@ async def main():
                 await client.connect(hostname, port)
                 break
             except:
-                sys.stdout.write("Connection failed")
+                print("Connection failed")
                 continue
         
         await client.play()

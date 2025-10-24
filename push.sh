@@ -1,4 +1,4 @@
-#! bin/bash
+#!/bin/bash
 echo "a" >> a.txt
 git checkout
 git add .
