@@ -6,7 +6,7 @@ from answer import generate_answer
 import asyncio
 from typing import Any
 import requests
-from timeouts import time_limit
+from timeouts import time_limit, TimeLimitError
 
 
 class Client:
@@ -157,15 +157,14 @@ class Client:
     async def _ask_ollama(self, question: dict[str, Any], timeout: float) -> str | None:
         if self._ollama_config is None:
             return None
-        host = self._ollama_config['ollama_host']
+        base = self._ollama_config['ollama_host']  
         port = self._ollama_config['ollama_port']
         model = self._ollama_config['ollama_model']
 
-        base = self._ollama_config['ollama_host']  # e.g. 'localhost' or 'http://localhost'
         if not base.startswith(('http://', 'https://')):
             base = f'http://{base}'
             
-        url = f'{base}:{self._ollama_config["ollama_port"]}/api/chat'
+        url = f'{base}:{port}/api/chat'
         payload = {
             "model": model,
             "messages": [
@@ -182,7 +181,7 @@ class Client:
                 data = resp.json()
                 return data["message"]["content"]
             
-        except (TimeoutError, requests.Timeout):
+        except (TimeLimitError, requests.Timeout):
             return None
         
 

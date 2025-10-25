@@ -2,7 +2,7 @@
 import signal
 from contextlib import contextmanager
 
-class TimeoutError(Exception):
+class TimeLimitError(Exception):
     pass
 
 @contextmanager
