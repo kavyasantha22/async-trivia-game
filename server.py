@@ -89,6 +89,7 @@ class Server:
         self._multiple_winner_message = multiple_winners
 
         # self._reader, self._writer = await self.connect(port)
+        self._asyncio_server : asyncio.Server | None = None
         self._orchestrator_task : asyncio.Task | None = None
         self._leaderboard : dict[str, int] = dict()
         self._round_no = 0
@@ -103,27 +104,26 @@ class Server:
 
     async def start(self) -> None:
         try:
-            server = await asyncio.start_server(self._handle_client, host=self._host, port=self._port)
+            self._asyncio_server = await asyncio.start_server(self._handle_client, host=self._host, port=self._port)
         except Exception as e:
             sys.stderr.write(f"server.py: Binding to port {self._port} was unsuccessful\n")
             return
 
-        addrs = ", ".join(str(s.getsockname()) for s in server.sockets or [])
-        print(addrs)
+        # addrs = ", ".join(str(s.getsockname()) for s in self._asyncio_server.sockets or [])
+        # print(addrs)
 
         self._orchestrator_task = asyncio.create_task(self._orchestrator())
         self._orchestrator_task.add_done_callback(
             lambda t: t.exception()
         )
 
-
         try:
-            async with server:
-                await server.serve_forever()
+            async with self._asyncio_server:
+                await self._asyncio_server.serve_forever()
         except Exception as e:
             print(e)
         finally:
-            pass
+            return
 
 
     # double check
@@ -184,17 +184,44 @@ class Server:
             elif self._state is GameState.FINISHED:
                 finished_msg = self._construct_finished_message()
                 await self._broadcast(finished_msg)
-                for sess in self._active_sessions:
-                    if sess.writer is None:
-                        print(f"{sess.username} has no writer")
-                        continue
-                    await self._drop_session(sess.writer)
+                await self._shutdown_everything()
                 return
 
             else:
                 pass
-            await asyncio.sleep(0.05)
             
+            await asyncio.sleep(0.05)
+
+
+    async def _shutdown_everything(self):
+        for sess in self._sessions.values():
+            if sess.writer is None:
+                print(f"{sess.username} has no writer")
+                continue
+            try:
+                await self._drop_session(sess.writer)
+            except Exception:
+                pass
+
+        if self._asyncio_server is not None:
+            self._asyncio_server.close()
+            try:
+                await self._asyncio_server.wait_closed()
+            except Exception:
+                pass
+
+        if self._orchestrator_task is not None and not self._orchestrator_task.done():
+            self._orchestrator_task.cancel()
+            try:
+                await self._orchestrator_task
+            except asyncio.CancelledError:
+                pass
+            finally:
+                self._orchestrator_task = None
+        return 
+
+            
+
     def _get_correct_answer(self) -> str | None:
         if self._question_round is None:
             return None 
