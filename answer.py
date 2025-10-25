@@ -1,7 +1,7 @@
 
 def generate_answer(question_type, short_question) -> str:
-    print("generating answer...")
-    print(question_type, short_question)
+    # print("generating answer...")
+    # print(question_type, short_question)
     if question_type == "Usable IP Addresses of a Subnet":
         return _generate_usable_ipv4_answer(short_question)
     elif question_type == "Network and Broadcast Address of a Subnet":
@@ -91,7 +91,7 @@ def _parse_ip_cidr(short_question: str):
 
 
 def _generate_network_broadcast(short_question: str):
-    print("generating answer for network broadcast...")
+    # print("generating answer for network broadcast...")
     ip, cidr = _parse_ip_cidr(short_question)
     mask = 0xFFFFFFFF << (32 - cidr) & 0xFFFFFFFF
     inv_mask = ~mask & 0xFFFFFFFF
@@ -108,7 +108,7 @@ def _convert_to_ip(num):
 
 def _generate_network_broadcast_answer(short_question):
     network, broadcast = _generate_network_broadcast(short_question)
-    print("returning...")
+    # print("returning...")
     return str(_convert_to_ip(network)) + " and " + str(_convert_to_ip(broadcast))
     
 
