@@ -319,7 +319,7 @@ class Server:
         elif mtype == "ANSWER":
             print(received)
             answer = received.get("answer","")
-            if answer is None:
+            if answer == "":
                 return
             correct_answer = self._get_correct_answer()
 
