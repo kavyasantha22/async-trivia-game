@@ -436,7 +436,7 @@ class Server:
         
         str_ranking = f"{self._final_standings_heading}\n"
 
-        str_ranking += self._construct_leaderboard_message()["state"]
+        str_ranking += self._construct_leaderboard_message()["state"] + '\n'
 
         if len(ranking) > 1 and ranking[0].point == ranking[1].point:
             winner_point = ranking[0].point 
