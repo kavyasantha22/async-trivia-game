@@ -240,7 +240,7 @@ class Server:
 
         await asyncio.gather(*tasks, return_exceptions=True)
 
-        print("Finished broadcasting.")
+        # print("Finished broadcasting.")
 
 
     async def _handle_client(self, reader, writer) -> None:
@@ -251,9 +251,11 @@ class Server:
                     break
                 try:
                     data = await receive_message(reader)   
-                except (asyncio.IncompleteReadError, ConnectionResetError, BrokenPipeError):
+                except Exception as e:
+                    print(e)
                     break                                   
-                if data is None:                            
+                if data is None:
+                    print("Data is none!")                            
                     break
                 await self._process_message(data, writer)
         finally:
