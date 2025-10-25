@@ -319,6 +319,8 @@ class Server:
         elif mtype == "ANSWER":
             print(received)
             answer = received.get("answer","")
+            if answer is None:
+                return
             correct_answer = self._get_correct_answer()
 
             if self._state is GameState.QUESTION and self._question_round is not None:
