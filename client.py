@@ -25,34 +25,34 @@ class Client:
         self.connected = False
 
 
-    def construct_hi_message(self) -> dict:
+    def _construct_hi_message(self) -> dict:
         return {
             "message_type": "HI",
             "username": self.username
         }
     
 
-    def construct_bye_message(self) -> dict:
+    def _construct_bye_message(self) -> dict:
         return {
             "message_type": "BYE"
         }
 
 
-    async def connect(self, hostname: str, port: str) -> None:
+    async def _connect(self, hostname: str, port: str) -> None:
         self.reader, self.writer = await asyncio.open_connection(hostname, int(port))
         # peer = self.writer.get_extra_info("peername")
         # print(f"Connected to {peer}")
-        msg = self.construct_hi_message()
+        msg = self._construct_hi_message()
         await send_message(self.writer, msg)
         self.connected = True
 
 
-    async def disconnect(self) -> bool:
+    async def _disconnect(self) -> bool:
         if self.writer is None:
             # print("Already disconnected.")
             return True
         try:
-            await send_message(self.writer, self.construct_bye_message())
+            await send_message(self.writer, self._construct_bye_message())
         except Exception:
             pass  # connection may already be gone
         try:
@@ -94,7 +94,7 @@ class Client:
 
             elif recv_msg['message_type'] == "FINISHED":
                 print(recv_msg["final_standings"])
-                # await self.disconnect()
+                # await self._disconnect()
                 self.connected = False
 
             elif recv_msg['message_type'] == "READY":
@@ -140,7 +140,7 @@ class Client:
     async def handle_input(self, message=None) -> str:
         inp = await get_input(message=message, client=self)
         if inp == "DISCONNECT":
-            await self.disconnect()
+            await self._disconnect()
             return ""
         else:
             return inp
@@ -182,7 +182,7 @@ class Client:
                 continue
             try:
                 hostname, port = inp[1].split(":")
-                await self.connect(hostname, port)
+                await self._connect(hostname, port)
                 break
             except Exception as e:
                 print(f"Connection failed")
@@ -212,7 +212,7 @@ async def get_input(timeout = None, message : str | None = None, client : Client
     inp = await asyncio.to_thread(input)
     if inp == "EXIT":
         if client is not None:
-            await client.disconnect()
+            await client._disconnect()
         sys.exit(0)
     return inp
 

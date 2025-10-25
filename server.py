@@ -217,17 +217,27 @@ class Server:
 
 
     async def _handle_client(self, reader, writer) -> None:
-        print(1)
-        while True:
-            data = await receive_message(reader)
-            if data is not None:
+        peer = writer.get_extra_info("peername")
+        try:
+            while True:
+                if reader is None:
+                    break
+                try:
+                    data = await receive_message(reader)   
+                except (asyncio.IncompleteReadError, ConnectionResetError, BrokenPipeError):
+                    break                                   
+                if data is None:                            
+                    break
                 await self._process_message(data, writer)
+        finally:
+            await self._drop_session(writer)                
+            print(f"[-] disconnected {peer}")
     
 
     async def _drop_session(self, writer : asyncio.StreamWriter) -> None:
         discarded_ses = self._find_session_by_writer(writer)
 
-        if discarded_ses == None:
+        if discarded_ses is None:
             print(f"Session with writer {writer} is not found.")
             return
         
@@ -243,7 +253,12 @@ class Server:
     
     
     async def _process_message(self, received: dict, writer) -> None:
-        mtype = received["message_type"]
+        try:
+            mtype = received["message_type"]
+        except Exception:
+            print("There is no message_type")
+            print(received)
+            return
 
         if mtype == "HI":
             username = received["username"]
@@ -282,7 +297,8 @@ class Server:
             await send_message(writer, result_msg)
 
         else:
-            pass
+            print("Unknown message received")
+            print(received)
 
     
     def _find_session_by_writer(self, writer : asyncio.StreamWriter) -> ClientSession | None:
