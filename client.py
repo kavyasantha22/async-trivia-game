@@ -121,7 +121,7 @@ class Client:
         }
         try:
             if self.mode == 'you':
-                ans = await asyncio.wait_for(self.handle_input("Your answer: "), timeout=qtimeout)
+                ans = await asyncio.wait_for(self.handle_input(), timeout=qtimeout)
                 answer["answer"] = ans
 
             elif self.mode == 'auto':
