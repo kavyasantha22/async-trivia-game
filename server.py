@@ -285,20 +285,18 @@ class Server:
             answer = str(received.get("answer","")).strip().lower()
             correct_answer = self._get_correct_answer()
 
-        if self._state is GameState.QUESTION and self._question_round is not None:
-            sess = self._find_session_by_writer(writer)
-            if sess is not None:
-                self._question_round.answers_by_session[sess] = answer
-                if correct_answer is not None and correct_answer == answer:
-                    sess.point += 1
+            if self._state is GameState.QUESTION and self._question_round is not None:
+                sess = self._find_session_by_writer(writer)
+                if sess is not None:
+                    self._question_round.answers_by_session[sess] = answer
+                    if correct_answer is not None and correct_answer == answer:
+                        sess.point += 1
 
 
             result_msg = self._construct_result_message(answer, correct_answer)
             await send_message(writer, result_msg)
 
-        else:
-            print("Unknown message received")
-            print(received)
+        
 
     
     def _find_session_by_writer(self, writer : asyncio.StreamWriter) -> ClientSession | None:
