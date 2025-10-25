@@ -92,7 +92,6 @@ class Server:
         # self._reader, self._writer = await self.connect(port)
         self._asyncio_server : asyncio.Server | None = None
         self._orchestrator_task : asyncio.Task | None = None
-        self._leaderboard : dict[str, int] = dict()
         self._round_no = 0
         self._question_round: QuestionRound | None = None
         self._sessions : dict[str, ClientSession] = dict()
@@ -429,13 +428,13 @@ class Server:
                         reverse=True)
         
         str_ranking = f"{self._final_standings_heading}\n"
-        for sess in ranking:
-            str_ranking += f"{sess.username}: {sess.point}"
+        for i in range(len(ranking)):
+            sess = ranking[i]
+            str_ranking += f"{i + 1}. {sess.username}: {sess.point}"
             if sess.point == 1:
                 str_ranking += f" {self._points_noun_singular}\n"
             else:
                 str_ranking += f" {self._points_noun_plural}\n"
-
         if len(ranking) > 1 and ranking[0].point == ranking[1].point:
             winner_point = ranking[0].point 
             temp = ""
