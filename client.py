@@ -237,7 +237,7 @@ async def get_input(message : str | None = None, timeout: float | None = None, c
 
     if timeout is not None and timeout > 0:
         try:
-            inp = await asyncio.wait_for(custom_input(), timeout=(timeout+0.1))
+            inp = await asyncio.wait_for(custom_input(), timeout=(timeout+3))
         except asyncio.TimeoutError:
             return None
         else:
