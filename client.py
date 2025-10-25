@@ -121,8 +121,11 @@ class Client:
         }
         try:
             if self.mode == 'you':
-                ans = await asyncio.wait_for(self.handle_input(), timeout=qtimeout)
-                answer["answer"] = ans
+                ans = await self.handle_input(timeout=qtimeout)
+                if ans is not None:
+                    answer["answer"] = ans
+                else:
+                    return None
 
             elif self.mode == 'auto':
                 qtype = question['question_type'] # Not sure whether this is the right format
@@ -134,7 +137,10 @@ class Client:
                 answer["answer"] = ans
 
             elif self.mode == 'ai':
-                ans = await self._ask_ollama(question, qtimeout)
+                ans = await asyncio.wait_for(
+                    asyncio.to_thread(self._ask_ollama, qtype, squest),
+                    timeout=qtimeout,
+                )
                 if ans is not None:
                     answer["answer"] = ans
                 else:
@@ -145,8 +151,8 @@ class Client:
             return None
     
 
-    async def handle_input(self, message=None) -> str:
-        inp = await get_input(message=message, client=self)
+    async def handle_input(self, message=None, timeout=None) -> str | None:
+        inp = await get_input(message=message, client=self, timeout=timeout)
         if inp == "DISCONNECT":
             await self._disconnect()
             return ""
@@ -155,6 +161,9 @@ class Client:
         
 
     async def _ask_ollama(self, question: dict[str, Any], timeout: float) -> str | None:
+        def _call():
+            return requests.post(url, json=payload, timeout=(5, timeout))
+        
         if self._ollama_config is None:
             return None
         base = self._ollama_config['ollama_host']  
@@ -176,18 +185,19 @@ class Client:
             "stream": False
         }
         try:
-            with time_limit(timeout):
-                resp = requests.post(url, data=json.dumps(payload), timeout=timeout)
-                data = resp.json()
-                return data["message"]["content"]
-            
-        except (TimeLimitError, requests.Timeout):
+            # Outer timeout guards total time; inner tuple guards per I/O op
+            resp = await asyncio.wait_for(asyncio.to_thread(_call), timeout=timeout)
+            return resp.json()["message"]["content"]
+        except asyncio.TimeoutError:
             return None
-        
+
 
     async def prompt_connect(self) -> None:
         while True:
-            inp = (await get_input("Please connect to the desired server.\nformat: 'CONNECT <HOSTNAME>:<PORT>'")).split(" ")
+            inp = (await get_input())
+            if inp is None:
+                continue 
+            inp = inp.split()
             if inp[0] != "CONNECT":
                 print("Unrecognised command.")
                 continue
@@ -216,16 +226,29 @@ def parse_config_path() -> Path:
     return config_path
 
 
-async def get_input(timeout = None, message : str | None = None, client : Client | None = None) -> str:
+async def get_input(message : str | None = None, timeout: float | None = None, client : Client | None = None) -> str | None:
     if message is not None:
         print(message)
 
-    inp = await asyncio.to_thread(input)
-    if inp == "EXIT":
-        if client is not None:
-            await client._disconnect()
-        sys.exit(0)
-    return inp
+    async def custom_input() -> str:
+        inp = await asyncio.to_thread(input)
+        if inp == "EXIT":
+            if client is not None:
+                await client._disconnect()
+            sys.exit(0)
+        return inp
+
+    if timeout is not None and timeout > 0:
+        try:
+            inp = await asyncio.wait_for(custom_input(), timeout=timeout)
+        except asyncio.TimeoutError:
+            return None
+        else:
+            return inp
+
+    else:
+        inp = await custom_input()
+        return inp
 
 
 async def main():
