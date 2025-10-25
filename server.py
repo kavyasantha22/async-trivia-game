@@ -269,6 +269,7 @@ class Server:
             return
         
         self._active_sessions.discard(discarded_ses)
+        print(f"dropping {discarded_ses.username}...")
         discarded_ses.is_active = False
         discarded_ses.writer = None
         try: 
