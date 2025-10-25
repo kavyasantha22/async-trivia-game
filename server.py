@@ -162,7 +162,7 @@ class Server:
                     else:
                         self._state = GameState.BETWEEN_ROUNDS
                         print(self._state)
-                        question_round_start = cur_time + self._question_interval  
+                        question_round_start = cur_time + self._question_interval + 1 
                         leaderboard_msg = self._construct_leaderboard_message()
                         await self._broadcast(leaderboard_msg)
 
