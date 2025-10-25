@@ -161,7 +161,11 @@ class Client:
         port = self._ollama_config['ollama_port']
         model = self._ollama_config['ollama_model']
 
-        url = f"{host}:{port}/api/chat"
+        base = self._ollama_config['ollama_host']  # e.g. 'localhost' or 'http://localhost'
+        if not base.startswith(('http://', 'https://')):
+            base = f'http://{base}'
+            
+        url = f'{base}:{self._ollama_config["ollama_port"]}/api/chat'
         payload = {
             "model": model,
             "messages": [
@@ -174,8 +178,8 @@ class Client:
         }
         try:
             with time_limit(timeout):
-                ollama_request = requests.post(url, data=json.dumps(payload), timeout=timeout)
-                data = ollama_request.json()
+                resp = requests.post(url, data=json.dumps(payload), timeout=timeout)
+                data = resp.json()
                 return data["message"]["content"]
             
         except (TimeoutError, requests.Timeout):
