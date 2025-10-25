@@ -65,7 +65,6 @@ class Client:
         
 
     async def play(self) -> None:
-        print(1)
         if self.reader is None or self.writer is None:
             print("You are not connected yet. Cannot play.")
             return
@@ -77,7 +76,7 @@ class Client:
             print("Other type of message is received???")
 
         while self.connected:
-            print(2)
+            # print(2)
             recv_msg = await receive_message(self.reader)
             if recv_msg['message_type'] == "QUESTION":
                 print(recv_msg["trivia_question"])
@@ -222,7 +221,7 @@ async def main():
                 await client.connect(hostname, port)
                 break
             except Exception as e:
-                print(f"Connection failed: {e}")
+                print(f"Connection failed")
                 continue
         
         await client.play()
