@@ -158,11 +158,14 @@ class Server:
                     continue
 
                 if self._question_round.is_finished(self._active_sessions, cur_time):
-                    self._state = GameState.BETWEEN_ROUNDS
-                    print(self._state)
-                    question_round_start = cur_time + self._question_interval
-                    leaderboard_msg = self._construct_leaderboard_message()
-                    await self._broadcast(leaderboard_msg)     
+                    if self._round_no >= len(self._question_types):
+                        self._state = GameState.FINISHED
+                    else:
+                        self._state = GameState.BETWEEN_ROUNDS
+                        print(self._state)
+                        question_round_start = cur_time + self._question_interval  
+                        leaderboard_msg = self._construct_leaderboard_message()
+                        await self._broadcast(leaderboard_msg)
 
             elif self._state is GameState.BETWEEN_ROUNDS:
                 # Where to handle finished? shud we wait for the last interval before finishing or shud we go straight to finished after all qtypes are done?
@@ -170,15 +173,11 @@ class Server:
                     question_round_start = None
                     self._round_no += 1
 
-                    if self._round_no > len(self._question_types):
-                        self._state = GameState.FINISHED
-                        print(self._state)
-                    else:
-                        self._question_round = self._generate_question_round()
-                        self._state = GameState.QUESTION
-                        print(self._state)
-                        question_msg = self._construct_question_message()
-                        await self._broadcast(question_msg)
+                    self._question_round = self._generate_question_round()
+                    self._state = GameState.QUESTION
+                    print(self._state)
+                    question_msg = self._construct_question_message()
+                    await self._broadcast(question_msg)
 
             elif self._state is GameState.FINISHED:
                 finished_msg = self._construct_finished_message()
@@ -429,7 +428,7 @@ class Server:
                         key=lambda session: session.point,
                         reverse=True)
         
-        str_ranking = f"{self._final_standings_heading}"
+        str_ranking = f"{self._final_standings_heading}\n"
         for sess in ranking:
             str_ranking += f"{sess.username}: {sess.point}"
             if sess.point == 1:
