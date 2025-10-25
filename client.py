@@ -40,7 +40,7 @@ class Client:
 
     async def connect(self, hostname: str, port: str) -> None:
         self.reader, self.writer = await asyncio.open_connection(hostname, int(port))
-        peer = self.writer.get_extra_info("peername")
+        # peer = self.writer.get_extra_info("peername")
         # print(f"Connected to {peer}")
         msg = self.construct_hi_message()
         await send_message(self.writer, msg)
@@ -94,17 +94,17 @@ class Client:
 
             elif recv_msg['message_type'] == "FINISHED":
                 print(recv_msg["final_standings"])
-                await self.disconnect()
-                break
+                # await self.disconnect()
+                self.connected = False
 
             elif recv_msg['message_type'] == "READY":
                 print(recv_msg["info"])
 
             else:
                 print("Not recognised message type")
+                
+        return
 
-        while not self.connected:
-            pass
             
  
     async def construct_answer_message(self, question, qtimeout: float | int) -> dict | None:
@@ -126,7 +126,11 @@ class Client:
                 answer["answer"] = ans
 
             elif self.mode == 'ai':
-                answer["answer"] = ""
+                ans = await self._ask_ollama(question, qtimeout)
+                if ans is not None:
+                    answer["answer"] = ans
+                else:
+                    answer["answer"] = ""
 
             return answer
         except asyncio.TimeoutError:
@@ -142,7 +146,7 @@ class Client:
             return inp
         
 
-    async def ask_ollama(self, question: dict[str, Any], timeout: float) -> str | None:
+    async def _ask_ollama(self, question: dict[str, Any], timeout: float) -> str | None:
         if self._ollama_config is None:
             return None
         host = self._ollama_config['ollama_host']
@@ -168,6 +172,21 @@ class Client:
             
         except (TimeoutError, requests.Timeout):
             return None
+        
+
+    async def prompt_connect(self) -> None:
+        while True:
+            inp = (await get_input("Please connect to the desired server.\nformat: 'CONNECT <HOSTNAME>:<PORT>'")).split(" ")
+            if inp[0] != "CONNECT":
+                print("Unrecognised command.")
+                continue
+            try:
+                hostname, port = inp[1].split(":")
+                await self.connect(hostname, port)
+                break
+            except Exception as e:
+                print(f"Connection failed")
+                continue
         
         
 
@@ -211,19 +230,7 @@ async def main():
     client = Client(username, mode, ollama_config)
 
     while True:
-        while True:
-            inp = (await get_input("Please connect to the desired server.\nformat: 'CONNECT <HOSTNAME>:<PORT>'")).split(" ")
-            if inp[0] != "CONNECT":
-                print("Unrecognised command.")
-                continue
-            try:
-                hostname, port = inp[1].split(":")
-                await client.connect(hostname, port)
-                break
-            except Exception as e:
-                print(f"Connection failed")
-                continue
-        
+        await client.prompt_connect()
         await client.play()
 
 
