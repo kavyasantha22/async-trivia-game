@@ -18,5 +18,8 @@ async def send_message(writer: asyncio.StreamWriter, message: dict):
 
 async def receive_message(reader: asyncio.StreamReader) -> dict | None:
     line = await reader.readline()      
+    if not line:
+        return None
     decoded = decode_message(line)  
+    # print(decoded)
     return decoded

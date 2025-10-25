@@ -245,16 +245,16 @@ class Server:
         peer = writer.get_extra_info("peername")
         try:
             while True:
-                if reader is None:
+                if reader is None or writer is None:
                     break
                 try:
                     data = await receive_message(reader)   
                 except Exception as e:
                     print(e)
                     break                                   
-                if data is None:
-                    print("Data is none!")                            
-                    break
+                # if data is None:
+                #     print("Data is none!")                            
+                #     break
                 await self._process_message(data, writer)
         finally:
             print("Dropping because there is an exception or data is empty")
