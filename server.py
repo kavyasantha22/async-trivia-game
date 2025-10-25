@@ -136,10 +136,8 @@ class Server:
 
             if self._state is GameState.WAITING_FOR_PLAYERS:
                 if len(self._sessions) >= self._num_players and question_round_start is not None and cur_time >= question_round_start:
-                    print(self._state)
                     self._round_no = 1
                     self._question_round = self._generate_question_round()
-                    print(self._state)
                     question_round_start = None
                     self._state = GameState.QUESTION
                     print(self._state)
@@ -349,7 +347,7 @@ class Server:
         finished_at = started_at + self._question_seconds
         correct_answer = generate_answer(qtype, short_question)
 
-        print("Nearly finished generating question round...")
+        # print("Nearly finished generating question round...")
 
         return QuestionRound(
             round_no=self._round_no,
