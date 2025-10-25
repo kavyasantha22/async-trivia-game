@@ -1,10 +1,12 @@
 import sys
-import argparse
 from pathlib import Path
 import json
 from helper import send_message, receive_message
 from answer import generate_answer
 import asyncio
+from typing import Any
+import requests
+from timeouts import time_limit
 
 
 class Client:
@@ -12,12 +14,13 @@ class Client:
     def __init__(self, username, mode, ollama_config=None) -> None:
         self.username = username
         self.mode = mode
+        self._ollama_config : dict[str, Any] | None = None
         if self.mode == 'ai':
             if ollama_config is None:
                 sys.stderr.write("client.py: Missing values for Ollama configuration")
                 sys.exit(1)
             else:
-                self.ollama_config = ollama_config
+                self._ollama_config = ollama_config            
         self.reader, self.writer = None, None
         self.connected = False
 
@@ -38,7 +41,7 @@ class Client:
     async def connect(self, hostname: str, port: str) -> None:
         self.reader, self.writer = await asyncio.open_connection(hostname, int(port))
         peer = self.writer.get_extra_info("peername")
-        print(f"Connected to {peer}")
+        # print(f"Connected to {peer}")
         msg = self.construct_hi_message()
         await send_message(self.writer, msg)
         self.connected = True
@@ -46,7 +49,7 @@ class Client:
 
     async def disconnect(self) -> bool:
         if self.writer is None:
-            print("Already disconnected.")
+            # print("Already disconnected.")
             return True
         try:
             await send_message(self.writer, self.construct_bye_message())
@@ -139,6 +142,34 @@ class Client:
         else:
             return inp
         
+
+    async def ask_ollama(self, question: dict[str, Any], timeout: float) -> str | None:
+        if self._ollama_config is None:
+            return None
+        host = self._ollama_config['ollama_host']
+        port = self._ollama_config['ollama_port']
+        model = self._ollama_config['ollama_model']
+
+        url = f"{host}:{port}/api/chat"
+        payload = {
+            "model": model,
+            "messages": [
+                {
+                    "role": "user",
+                    "content": question["trivia_question"]
+                }
+            ],
+            "stream": False
+        }
+        try:
+            with time_limit(timeout):
+                ollama_request = requests.post(url, data=json.dumps(payload), timeout=timeout)
+                data = ollama_request.json()
+                return data["message"]["content"]
+            
+        except (TimeoutError, requests.Timeout):
+            return None
+        
         
 
 def parse_config_path() -> Path:
@@ -190,8 +221,8 @@ async def main():
                 hostname, port = inp[1].split(":")
                 await client.connect(hostname, port)
                 break
-            except:
-                print("Connection failed")
+            except Exception as e:
+                print(f"Connection failed: {e}")
                 continue
         
         await client.play()
