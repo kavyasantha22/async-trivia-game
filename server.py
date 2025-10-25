@@ -14,7 +14,7 @@ import sys
 import json
 from pathlib import Path
 import logging
-import traceback
+# import traceback
 
 # logging.basicConfig(
 #     level=logging.DEBUG,
@@ -259,8 +259,8 @@ class Server:
                     break
                 try:
                     await self._process_message(data, writer)
-                except Exception:
-                    print("process_message crashed:\n", traceback.format_exc())
+                except Exception as e:
+                    print(e)
                     break
 
         finally:
