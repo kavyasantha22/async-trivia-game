@@ -371,14 +371,16 @@ class Server:
                         reverse=True)
         
         str_ranking = ""
-        for sess in ranking:
-            str_ranking += f"{sess.username}: {sess.point}"
+        for i in range(len(ranking)):
+            sess = ranking[i]
+            str_ranking += f"{i + 1}. {sess.username}: {sess.point}"
             if sess.point == 1:
                 str_ranking += f" {self._points_noun_singular}\n"
             else:
                 str_ranking += f" {self._points_noun_plural}\n"
-
-        msg["state"] = str_ranking 
+        
+        # No space on the last line
+        msg["state"] = str_ranking[:-1]
         return msg
     
     
