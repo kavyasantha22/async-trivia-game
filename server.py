@@ -445,7 +445,7 @@ class Server:
                 if winner_point == sess.point:
                     temp += sess.username + ", "
             temp = temp[:-2]
-            str_ranking += self._one_winner_message.replace("{}", temp)
+            str_ranking += self._multiple_winner_message.replace("{}", temp)
         else:
             str_ranking += self._one_winner_message.replace("{}", ranking[0].username)
 
