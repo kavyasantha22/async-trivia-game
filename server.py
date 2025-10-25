@@ -257,6 +257,7 @@ class Server:
                     break
                 await self._process_message(data, writer)
         finally:
+            print("Dropping because there is an exception or data is empty")
             await self._drop_session(writer)                
             print(f"[-] disconnected {peer}")
     
@@ -307,6 +308,7 @@ class Server:
             # await send_message(writer, ready_msg) 
 
         elif mtype == "BYE":
+            print("Dropping because of BYE message")
             await self._drop_session(writer)
 
         elif mtype == "ANSWER":
