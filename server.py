@@ -14,6 +14,7 @@ import sys
 import json
 from pathlib import Path
 import logging
+import traceback
 
 # logging.basicConfig(
 #     level=logging.DEBUG,
@@ -256,7 +257,12 @@ class Server:
                 if data is None:
                     print("Data is none!")                            
                     break
-                await self._process_message(data, writer)
+                try:
+                    await self._process_message(data, writer)
+                except Exception:
+                    print("process_message crashed:\n", traceback.format_exc())
+                    break
+
         finally:
             # print("Dropping because there is an exception or data is empty")
             await self._drop_session(writer)                
