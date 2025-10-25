@@ -96,7 +96,7 @@ class Server:
         self._sessions : dict[str, ClientSession] = dict()
         self._active_sessions : set[ClientSession] = set()
 
-        self._TRIVIA_QUESTION_FORMAT = "{question_word} {question_number} ({question_type}): {question}"
+        self._TRIVIA_QUESTION_FORMAT = "{question_word} {question_number} ({question_type}):\n{question}"
 
         self._state : GameState = GameState.WAITING_FOR_PLAYERS
 
@@ -310,21 +310,16 @@ class Server:
 
     def _generate_question_round(self) -> QuestionRound:
         loop = asyncio.get_running_loop()
-        print("Generating question round...")
         qtype = self._question_types[self._round_no - 1]
-        print("QR")
         short_question = self._generate_short_question(qtype)
-        print("QR")
         trivia_question = self._TRIVIA_QUESTION_FORMAT.format(
             question_word=self._question_word,
             question_number=self._round_no,
             question_type=qtype,
             question=self._question_formats[qtype].replace("{}", short_question)
         )
-        print("QR")
         started_at = loop.time()
         finished_at = started_at + self._question_seconds
-        print("QR")
         correct_answer = generate_answer(qtype, short_question)
 
         print("Nearly finished generating question round...")

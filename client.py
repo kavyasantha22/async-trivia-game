@@ -70,6 +70,10 @@ class Client:
             return
         
         ready_msg = await receive_message(self.reader)
+
+        if ready_msg is None:
+            return
+        
         if ready_msg['message_type'] == "READY":
             print(ready_msg['info'])
         else:
@@ -78,6 +82,10 @@ class Client:
         while self.connected:
             # print(2)
             recv_msg = await receive_message(self.reader)
+
+            if recv_msg is None:
+                return
+        
             if recv_msg['message_type'] == "QUESTION":
                 print(recv_msg["trivia_question"])
 
