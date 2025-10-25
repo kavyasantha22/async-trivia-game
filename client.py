@@ -5,8 +5,8 @@ from helper import send_message, receive_message
 from answer import generate_answer
 import asyncio
 from typing import Any
-import requests
 from timeouts import time_limit, TimeLimitError
+import requests
 
 
 class Client:
@@ -128,7 +128,7 @@ class Client:
                     return None
 
             elif self.mode == 'auto':
-                qtype = question['question_type'] # Not sure whether this is the right format
+                qtype = question['question_type'] 
                 squest = question['short_question']
                 ans = await asyncio.wait_for(
                     asyncio.to_thread(generate_answer, qtype, squest),
@@ -137,10 +137,7 @@ class Client:
                 answer["answer"] = ans
 
             elif self.mode == 'ai':
-                ans = await asyncio.wait_for(
-                    asyncio.to_thread(self._ask_ollama, qtype, squest),
-                    timeout=qtimeout,
-                )
+                ans = await self._ask_ollama(question=question, timeout=qtimeout)
                 if ans is not None:
                     answer["answer"] = ans
                 else:
