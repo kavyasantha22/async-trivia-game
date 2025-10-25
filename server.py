@@ -13,7 +13,7 @@ from answer import generate_answer
 import sys
 import json
 from pathlib import Path
-import logging
+# import logging
 # import traceback
 
 # logging.basicConfig(
@@ -319,7 +319,8 @@ class Server:
             await self._drop_session(writer)
 
         elif mtype == "ANSWER":
-            answer = str(received.get("answer","")).strip().lower()
+            print(received)
+            answer = received.get("answer","").strip().lower()
             correct_answer = self._get_correct_answer()
 
             if self._state is GameState.QUESTION and self._question_round is not None:
