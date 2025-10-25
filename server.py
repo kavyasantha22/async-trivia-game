@@ -403,13 +403,20 @@ class Server:
         }
 
         ranking = sorted(self._sessions.values(),
-                        key=lambda session: session.point,
+                        key=lambda session: (session.point, session.username),
                         reverse=True)
         
         str_ranking = ""
+        prev_point = ranking[0]
+        rank = 1
         for i in range(len(ranking)):
             sess = ranking[i]
-            str_ranking += f"{i + 1}. {sess.username}: {sess.point}"
+
+            if sess.point != prev_point:
+                rank += 1
+                prev_point = sess.point
+                
+            str_ranking += f"{rank}. {sess.username}: {sess.point}"
             if sess.point == 1:
                 str_ranking += f" {self._points_noun_singular}\n"
             else:
@@ -430,13 +437,20 @@ class Server:
                         reverse=True)
         
         str_ranking = f"{self._final_standings_heading}\n"
+        prev_point = ranking[0]
+        rank = 1
         for i in range(len(ranking)):
             sess = ranking[i]
-            str_ranking += f"{i + 1}. {sess.username}: {sess.point}"
+            if sess.point != prev_point:
+                rank += 1
+                prev_point = sess.point
+
+            str_ranking += f"{rank}. {sess.username}: {sess.point}"
             if sess.point == 1:
                 str_ranking += f" {self._points_noun_singular}\n"
             else:
                 str_ranking += f" {self._points_noun_plural}\n"
+
         if len(ranking) > 1 and ranking[0].point == ranking[1].point:
             winner_point = ranking[0].point 
             temp = ""
