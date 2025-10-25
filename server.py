@@ -92,6 +92,7 @@ class Server:
         # self._reader, self._writer = await self.connect(port)
         self._asyncio_server : asyncio.Server | None = None
         self._orchestrator_task : asyncio.Task | None = None
+        self._leaderboard : dict[str, int] = dict()
         self._round_no = 0
         self._question_round: QuestionRound | None = None
         self._sessions : dict[str, ClientSession] = dict()
@@ -157,14 +158,11 @@ class Server:
                     continue
 
                 if self._question_round.is_finished(self._active_sessions, cur_time):
-                    if self._round_no >= len(self._question_types):
-                        self._state = GameState.FINISHED
-                    else:
-                        self._state = GameState.BETWEEN_ROUNDS
-                        print(self._state)
-                        question_round_start = cur_time + self._question_interval  
-                        leaderboard_msg = self._construct_leaderboard_message()
-                        await self._broadcast(leaderboard_msg)
+                    self._state = GameState.BETWEEN_ROUNDS
+                    print(self._state)
+                    question_round_start = cur_time + self._question_interval
+                    leaderboard_msg = self._construct_leaderboard_message()
+                    await self._broadcast(leaderboard_msg)     
 
             elif self._state is GameState.BETWEEN_ROUNDS:
                 # Where to handle finished? shud we wait for the last interval before finishing or shud we go straight to finished after all qtypes are done?
@@ -172,11 +170,15 @@ class Server:
                     question_round_start = None
                     self._round_no += 1
 
-                    self._question_round = self._generate_question_round()
-                    self._state = GameState.QUESTION
-                    print(self._state)
-                    question_msg = self._construct_question_message()
-                    await self._broadcast(question_msg)
+                    if self._round_no > len(self._question_types):
+                        self._state = GameState.FINISHED
+                        print(self._state)
+                    else:
+                        self._question_round = self._generate_question_round()
+                        self._state = GameState.QUESTION
+                        print(self._state)
+                        question_msg = self._construct_question_message()
+                        await self._broadcast(question_msg)
 
             elif self._state is GameState.FINISHED:
                 finished_msg = self._construct_finished_message()
@@ -191,6 +193,7 @@ class Server:
 
 
     async def _shutdown_everything(self):
+        print("shutting down everything...")
         for sess in self._sessions.values():
             if sess.writer is None:
                 print(f"{sess.username} has no writer")
@@ -319,8 +322,6 @@ class Server:
         elif mtype == "ANSWER":
             print(received)
             answer = received.get("answer","")
-            if answer == "":
-                return
             correct_answer = self._get_correct_answer()
 
             if self._state is GameState.QUESTION and self._question_round is not None:
@@ -403,19 +404,13 @@ class Server:
         }
 
         ranking = sorted(self._sessions.values(),
-                        key=lambda session: (-1*session.point, session.username))
+                        key=lambda session: session.point,
+                        reverse=True)
         
         str_ranking = ""
-        prev_point = -1
-        rank = 0
         for i in range(len(ranking)):
             sess = ranking[i]
-
-            if sess.point != prev_point:
-                rank += 1
-                prev_point = sess.point
-
-            str_ranking += f"{rank}. {sess.username}: {sess.point}"
+            str_ranking += f"{i + 1}. {sess.username}: {sess.point}"
             if sess.point == 1:
                 str_ranking += f" {self._points_noun_singular}\n"
             else:
@@ -432,11 +427,16 @@ class Server:
         }
 
         ranking = sorted(self._sessions.values(),
-                key=lambda session: (-1*session.point, session.username))
+                        key=lambda session: session.point,
+                        reverse=True)
         
-        str_ranking = f"{self._final_standings_heading}\n"
-
-        str_ranking += self._construct_leaderboard_message()["state"] + '\n'
+        str_ranking = f"{self._final_standings_heading}"
+        for sess in ranking:
+            str_ranking += f"{sess.username}: {sess.point}"
+            if sess.point == 1:
+                str_ranking += f" {self._points_noun_singular}\n"
+            else:
+                str_ranking += f" {self._points_noun_plural}\n"
 
         if len(ranking) > 1 and ranking[0].point == ranking[1].point:
             winner_point = ranking[0].point 
@@ -445,7 +445,7 @@ class Server:
                 if winner_point == sess.point:
                     temp += sess.username + ", "
             temp = temp[:-2]
-            str_ranking += self._multiple_winner_message.replace("{}", temp)
+            str_ranking += self._one_winner_message.replace("{}", temp)
         else:
             str_ranking += self._one_winner_message.replace("{}", ranking[0].username)
 

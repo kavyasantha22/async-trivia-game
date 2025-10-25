@@ -159,7 +159,7 @@ class Client:
 
     async def _ask_ollama(self, question: dict[str, Any], timeout: float) -> str | None:
         def _call():
-            return requests.post(url, json=payload, timeout=(5, timeout))
+            return requests.post(url, json=payload)
         
         if self._ollama_config is None:
             return None
