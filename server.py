@@ -403,8 +403,7 @@ class Server:
         }
 
         ranking = sorted(self._sessions.values(),
-                        key=lambda session: (session.point, session.username),
-                        reverse=True)
+                        key=lambda session: (-1*session.point, session.username))
         
         str_ranking = ""
         prev_point = ranking[0]
@@ -415,7 +414,7 @@ class Server:
             if sess.point != prev_point:
                 rank += 1
                 prev_point = sess.point
-                
+
             str_ranking += f"{rank}. {sess.username}: {sess.point}"
             if sess.point == 1:
                 str_ranking += f" {self._points_noun_singular}\n"
@@ -433,8 +432,7 @@ class Server:
         }
 
         ranking = sorted(self._sessions.values(),
-                        key=lambda session: session.point,
-                        reverse=True)
+                key=lambda session: (-1*session.point, session.username))
         
         str_ranking = f"{self._final_standings_heading}\n"
         prev_point = ranking[0]
