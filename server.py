@@ -390,8 +390,8 @@ class Server:
         else:
             msg["correct"] = False
             msg["feedback"] = self._incorrect_answer_message.format(
-                correct_answer=self._get_correct_answer(),
-                incorrect_answer=answer
+                correct_answer=correct_answer,
+                answer=answer
             )
 
         return msg
