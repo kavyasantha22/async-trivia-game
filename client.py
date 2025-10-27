@@ -79,67 +79,70 @@ class Client:
         else:
             print("Other type of message is received???")
 
-        # await self._recv_message_loop()
+        await self._recv_message_loop()
 
-        while self.connected:
-            # print(2)
-            recv_msg = await receive_message(self.reader)
+        # while self.connected:
+        #     # print(2)
+        #     recv_msg = await receive_message(self.reader)
 
-            if recv_msg is None:
-                return
+        #     if recv_msg is None:
+        #         return
         
-            if recv_msg['message_type'] == "QUESTION":
-                print(recv_msg["trivia_question"])
+        #     if recv_msg['message_type'] == "QUESTION":
+        #         print(recv_msg["trivia_question"])
 
-                qtimeout = recv_msg["time_limit"]
-                answer = await self.construct_answer_message(recv_msg, qtimeout)
-                if answer is not None:
-                    await send_message(self.writer, answer)
+        #         qtimeout = recv_msg["time_limit"]
+        #         answer = await self.construct_answer_message(recv_msg, qtimeout)
+        #         if answer is not None:
+        #             await send_message(self.writer, answer)
 
-            elif recv_msg['message_type'] == "RESULT":
-                print(recv_msg['feedback'])
+        #     elif recv_msg['message_type'] == "RESULT":
+        #         print(recv_msg['feedback'])
 
-            elif recv_msg['message_type'] == "LEADERBOARD":
-                print(recv_msg["state"])
+        #     elif recv_msg['message_type'] == "LEADERBOARD":
+        #         print(recv_msg["state"])
 
-            elif recv_msg['message_type'] == "FINISHED":
-                print(recv_msg["final_standings"])
-                # await self._disconnect()
-                self.connected = False
+        #     elif recv_msg['message_type'] == "FINISHED":
+        #         print(recv_msg["final_standings"])
+        #         # await self._disconnect()
+        #         self.connected = False
 
-            elif recv_msg['message_type'] == "READY":
-                print(recv_msg["info"])
+        #     elif recv_msg['message_type'] == "READY":
+        #         print(recv_msg["info"])
 
-            else:
-                print("Not recognised message type")
+        #     else:
+        #         print("Not recognised message type")
                 
-        return
+        # return
 
     
-    # async def _recv_message_loop(self):
-    #     while self.connected:
-    #         msg = await receive_message(self.reader)
-    #         if not msg:
-    #             break
-    #         t = msg.get("message_type")
-    #         if t == "READY":
-    #             print(msg["info"])
-    #         elif t == "QUESTION":
-    #             print(msg["trivia_question"])
-    #             asyncio.create_task(self.construct_answer_message(msg, msg["time_limit"])) 
-    #         elif t == "RESULT":
-    #             print(msg["feedback"])
-    #         elif t == "LEADERBOARD":
-    #             print(msg["state"])
-    #         elif t == "FINISHED":
-    #             print(msg["final_standings"])
-    #             self.connected = False  
-    #             break
-    #         else:
-    #             print("Not recognised message type")
+    async def _recv_message_loop(self):
+        while self.connected:
+            msg = await receive_message(self.reader)
+            if not msg:
+                break
+            t = msg.get("message_type")
+            if t == "READY":
+                print(msg["info"])
+            elif t == "QUESTION":
+                print(msg["trivia_question"])
+                asyncio.create_task(self._answer_question(msg, msg["time_limit"])) 
+            elif t == "RESULT":
+                print(msg["feedback"])
+            elif t == "LEADERBOARD":
+                print(msg["state"])
+            elif t == "FINISHED":
+                print(msg["final_standings"])
+                self.connected = False  
+                break
+            else:
+                print("Not recognised message type")
             
  
-    async def construct_answer_message(self, question, qtimeout: float | int) -> dict | None:
+    async def _answer_question(self, question, qtimeout: float | int) -> None:
+        if not self.writer:
+            return 
+        
         answer = {
             "message_type": "ANSWER"
         }
@@ -167,7 +170,7 @@ class Client:
                 else:
                     answer["answer"] = ""
 
-            return answer
+            await send_message(self.writer, answer)
         except asyncio.TimeoutError:
             return None
     
