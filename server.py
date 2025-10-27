@@ -329,7 +329,7 @@ class Server:
         #     # Avoid double-dropping if session already removed
         #     if self._find_session_by_writer(writer) is not None:
         #         await self._drop_session(writer)
-            print(f"[-] disconnected {peer}")
+            # print(f"[-] disconnected {peer}")
     
 
     async def _drop_session(self, writer : asyncio.StreamWriter) -> None:
