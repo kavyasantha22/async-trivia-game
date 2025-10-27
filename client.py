@@ -311,7 +311,7 @@ async def get_input(
             # print("EXIT is received.")
             return None
         else:
-            print("it goes here")
+            # print("it goes here")
             sys.exit(0)
 
     if client is not None and inp == "DISCONNECT":
