@@ -15,6 +15,7 @@ import json
 from pathlib import Path
 # import logging
 # import traceback
+import time
 
 # logging.basicConfig(
 #     level=logging.DEBUG,
@@ -100,6 +101,37 @@ class Server:
         self._TRIVIA_QUESTION_FORMAT = "{question_word} {question_number} ({question_type}):\n{question}"
 
         self._state : GameState = GameState.WAITING_FOR_PLAYERS
+        self._log(f"Initialised server on {self._host}:{self._port}; awaiting {self._num_players} players; state={self._state.name}")
+
+    def _log(self, message: str) -> None:
+        ts = time.strftime("%H:%M:%S")
+        print(f"[SRV {ts}] {message}")
+
+    def _summarize_message(self, message: dict[str, Any]) -> str:
+        try:
+            mtype = message.get("message_type")
+            if mtype == "QUESTION":
+                return f"QUESTION round={self._round_no} type={message.get('question_type')} timeout={message.get('time_limit')}"
+            if mtype == "READY":
+                return f"READY interval={self._question_interval}"
+            if mtype == "LEADERBOARD":
+                state = message.get("state", "")
+                return f"LEADERBOARD lines={len(state.splitlines())}"
+            if mtype == "FINISHED":
+                return "FINISHED final_standings"
+            if mtype == "RESULT":
+                return f"RESULT correct={message.get('correct')}"
+            return f"{mtype} keys={list(message.keys())}"
+        except Exception:
+            return "<unprintable message>"
+
+    def _transition_state(self, new_state: GameState, reason: str) -> None:
+        old_state = self._state
+        if old_state is new_state:
+            self._log(f"State unchanged: {old_state.name} ({reason})")
+            return
+        self._state = new_state
+        self._log(f"State {old_state.name} -> {new_state.name} ({reason})")
 
 
     async def start(self) -> None:
@@ -111,6 +143,8 @@ class Server:
 
         # addrs = ", ".join(str(s.getsockname()) for s in self._asyncio_server.sockets or [])
         # print(addrs)
+        socknames = ", ".join(str(s.getsockname()) for s in (self._asyncio_server.sockets or []))
+        self._log(f"Listening on {socknames}")
 
         self._orchestrator_task = asyncio.create_task(self._orchestrator())
         self._orchestrator_task.add_done_callback(
@@ -139,8 +173,7 @@ class Server:
                     self._round_no = 1
                     self._question_round = self._generate_question_round()
                     question_round_start = None
-                    self._state = GameState.QUESTION
-                    # print(self._state)
+                    self._transition_state(GameState.QUESTION, "Starting first question round")
                     question_msg = self._construct_question_message()
                     await self._broadcast(question_msg)
 
@@ -158,10 +191,9 @@ class Server:
 
                 if self._question_round.is_finished(self._active_sessions, cur_time):
                     if self._round_no >= len(self._question_types):
-                        self._state = GameState.FINISHED
+                        self._transition_state(GameState.FINISHED, "All question types completed")
                     else:
-                        self._state = GameState.BETWEEN_ROUNDS
-                        print(self._state)
+                        self._transition_state(GameState.BETWEEN_ROUNDS, "Round finished; sending leaderboard and waiting before next question")
                         question_round_start = cur_time + self._question_interval 
                         leaderboard_msg = self._construct_leaderboard_message()
                         await self._broadcast(leaderboard_msg)
@@ -173,8 +205,7 @@ class Server:
                     self._round_no += 1
 
                     self._question_round = self._generate_question_round()
-                    self._state = GameState.QUESTION
-                    print(self._state)
+                    self._transition_state(GameState.QUESTION, f"Starting round {self._round_no}")
                     question_msg = self._construct_question_message()
                     await self._broadcast(question_msg)
 
@@ -191,6 +222,7 @@ class Server:
 
 
     async def _shutdown_everything(self):
+        self._log("Shutting down server and closing client sessions")
         for sess in self._sessions.values():
             if sess.writer is None:
                 print(f"{sess.username} has no writer")
@@ -229,28 +261,37 @@ class Server:
         # print("broadcasting...")
         tasks = []
 
+        recipients: list[str] = []
         for sess in list(self._active_sessions):
             if sess.writer is None:
                 print(f"{sess.username} has no writer")
                 continue
+            recipients.append(sess.username)
             tasks.append(asyncio.create_task(send_message(sess.writer, message)))
 
-        await asyncio.gather(*tasks, return_exceptions=True)
+        self._log(f"Broadcast -> {recipients} | {self._summarize_message(message)}")
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+        # Surface any exceptions for visibility
+        for idx, res in enumerate(results):
+            if isinstance(res, Exception):
+                self._log(f"Broadcast send error to {recipients[idx]}: {res}")
 
         # print("Finished broadcasting.")
 
 
     async def _handle_client(self, reader, writer) -> None:
         peer = writer.get_extra_info("peername")
+        self._log(f"[+] connected {peer}")
         try:
             while True:
                 if reader is None or writer is None:
                     # print("reader or writer is None!")
                     break
                 try:
-                    data = await receive_message(reader)   
+                    data = await receive_message(reader)  
+                    print(data) 
                 except Exception as e:
-                    print(e)
+                    self._log(f"Receive error from {peer}: {e}")
                     break                                   
                 if data is None:
                     print("Data is none!")                            
@@ -258,12 +299,18 @@ class Server:
                 try:
                     await self._process_message(data, writer)
                 except Exception as e:
-                    print(e)
+                    self._log(f"Process message error from {peer}: {e}")
+                    break
+
+                # If the session has been removed (e.g., BYE processed), stop reading
+                if self._find_session_by_writer(writer) is None:
                     break
 
         finally:
             # print("Dropping because there is an exception or data is empty")
-            await self._drop_session(writer)                
+            # Avoid double-dropping if session already removed
+            if self._find_session_by_writer(writer) is not None:
+                await self._drop_session(writer)
             print(f"[-] disconnected {peer}")
     
 
@@ -276,6 +323,7 @@ class Server:
         
         self._active_sessions.discard(discarded_ses)
         print(f"dropping {discarded_ses.username}...")
+        self._log(f"Active sessions: {len(self._active_sessions)}/{self._num_players}")
         discarded_ses.is_active = False
         discarded_ses.writer = None
         try: 
@@ -294,6 +342,10 @@ class Server:
             print(received)
             return
 
+        sess = self._find_session_by_writer(writer)
+        uname = sess.username if sess is not None else "<unknown>"
+        self._log(f"Recv <- {uname} | {mtype} {received}")
+
         if mtype == "HI":
             username = received["username"]
             print(f"{username} joined.")
@@ -309,6 +361,7 @@ class Server:
             new_session = ClientSession(username, writer)
             self._sessions[username] = new_session
             self._active_sessions.add(new_session)
+            self._log(f"Session added: {username}. Active sessions: {len(self._active_sessions)}/{self._num_players}")
             # ready_msg = self._construct_ready_message()
             # await send_message(writer, ready_msg) 
 
@@ -317,7 +370,7 @@ class Server:
             await self._drop_session(writer)
 
         elif mtype == "ANSWER":
-            print(received)
+            # Detailed answer logging
             answer = received.get("answer","")
             if answer == "":
                 return
@@ -332,6 +385,8 @@ class Server:
 
 
             result_msg = self._construct_result_message(answer, correct_answer)
+            to_uname = sess.username if sess is not None else "<unknown>"
+            self._log(f"Send -> {to_uname} | {self._summarize_message(result_msg)} answer='{answer}' correct_answer='{correct_answer}'")
             await send_message(writer, result_msg)
 
         
@@ -359,6 +414,12 @@ class Server:
         correct_answer = generate_answer(qtype, short_question)
 
         # print("Nearly finished generating question round...")
+        try:
+            self._log(
+                f"Round generated: round={self._round_no} type={qtype} users={len(self._active_sessions)} time_limit={self._question_seconds} correct='{correct_answer}'"
+            )
+        except Exception:
+            pass
 
         return QuestionRound(
             round_no=self._round_no,

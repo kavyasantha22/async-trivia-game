@@ -51,20 +51,17 @@ class Client:
 
 
     async def _disconnect(self) -> bool:
+        print("Trying to disconnect...")
         if self.writer is None:
-            # print("Already disconnected.")
             return True
         try:
             await send_message(self.writer, self._construct_bye_message())
         except Exception:
             pass  # connection may already be gone
-        try:
-            self.writer.close()
-            await self.writer.wait_closed()
-        finally:
-            self.connected = False
-            self.reader, self.writer = None, None
-            return True
+
+        self.connected = False
+        self.reader, self.writer = None, None
+        return True
         
 
     async def play(self) -> None:
@@ -204,36 +201,12 @@ class Client:
     async def request_shutdown(self):
         if self._shutdown_event.is_set():
             return
-        
         self._shutdown_event.set()
-        self.connected = False
+        await self._disconnect()
         # close writer ASAP to unblock reader
-        if self.writer:
-            try:
-                self.writer.close()
-                # don't await here; let recv loop fall out first
-            except Exception:
-                pass
-        # cancel recv loop if it's still waiting
+        await self._cancel_answer_task()
         if self._recv_loop_task and not self._recv_loop_task.done():
             self._recv_loop_task.cancel()
-
-
-    async def shutdown(self) -> None:
-        # print("Shutting down process started")
-        self.connected = False 
-        
-        if self.writer:
-            await self._disconnect()
-
-            try:
-                self.writer.close()
-                await self.writer.wait_closed()
-            except Exception:
-                pass
-        
-        self.writer = None
-        self.reader = None
 
 
     async def _cancel_answer_task(self):
@@ -354,8 +327,6 @@ async def main():
         await client.prompt_connect()
         await client.play()
     
-    # Ill put every shutdown related here
-    await client.shutdown()
     sys.exit(0)
 
 
