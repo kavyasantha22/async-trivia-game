@@ -288,7 +288,7 @@ class Server:
                 break
             try:
                 data = await receive_message(reader)  
-                print(data) 
+                # print(data) 
             except Exception as e:
                 self._log(f"Receive error from {peer}: {e}")
                 break                                   
