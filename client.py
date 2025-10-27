@@ -199,7 +199,16 @@ class Client:
 
     async def prompt_connect(self) -> None:
         while True:
+            if self.is_shutting_down():     
+                return
+            
             inp = (await get_input())
+
+            if inp is None:
+                if self.is_shutting_down(): 
+                    return
+                continue
+
             if inp is None:
                 continue 
             inp = inp.split()
