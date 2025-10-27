@@ -4,7 +4,7 @@ import json
 from helper import send_message, receive_message
 from answer import generate_answer
 import asyncio
-from typing import Any
+from typing import Any, Optional
 from timeouts import time_limit, TimeLimitError
 import requests
 
@@ -145,7 +145,7 @@ class Client:
         }
         try:
             if self.mode == 'you':
-                ans = await self.handle_input(timeout=qtimeout)
+                ans = await get_input(timeout=qtimeout)
                 if ans is not None:
                     answer["answer"] = ans
                 else:
@@ -172,13 +172,13 @@ class Client:
             return None
     
 
-    async def handle_input(self, message=None, timeout=None) -> str | None:
-        inp = await get_input(message=message, client=self, timeout=timeout)
-        if inp == "DISCONNECT":
-            await self._disconnect()
-            return ""
-        else:
-            return inp
+    # async def handle_input(self, message=None, timeout=None) -> str | None:
+    #     inp = await get_input(message=message, client=self, timeout=timeout)
+    #     if inp == "DISCONNECT":
+    #         await self._disconnect()
+    #         return ""
+    #     else:
+    #         return inp
         
 
     async def _ask_ollama(self, question: dict[str, Any], timeout: float) -> str | None:
@@ -229,8 +229,72 @@ class Client:
             except Exception as e:
                 print(f"Connection failed")
                 continue
-        
-        
+
+
+
+_STDIN_Q: asyncio.Queue[str] = asyncio.Queue()
+_STDIN_READER_INSTALLED = False
+
+
+def install_stdin_reader() -> None:
+    global _STDIN_READER_INSTALLED
+    if _STDIN_READER_INSTALLED:
+        return
+    loop = asyncio.get_running_loop()
+
+    def _on_stdin_ready():
+        line = sys.stdin.readline()
+        if line == "":  
+            return
+        _STDIN_Q.put_nowait(line.rstrip("\n"))
+
+    loop.add_reader(sys.stdin, _on_stdin_ready)
+    _STDIN_READER_INSTALLED = True
+
+
+def drain_stdin_queue() -> None:
+    try:
+        while True:
+            # This could be a problem, check later if a problem occurs
+            _STDIN_Q.get_nowait()
+    except asyncio.QueueEmpty:
+        pass
+
+
+
+async def get_input(
+    message: Optional[str] = None,
+    timeout: Optional[float] = None,
+    client: Optional[Client] = None,
+) -> str | None:
+    
+    install_stdin_reader()
+
+    if message:
+        print(message)
+
+    drain_stdin_queue()
+
+    try:
+        if timeout and timeout > 0:
+            inp = await asyncio.wait_for(_STDIN_Q.get(), timeout=timeout)
+        else:
+            inp = await _STDIN_Q.get()
+    except asyncio.TimeoutError:
+        return None
+    
+    if inp == "EXIT":
+        if client is not None:
+            await client._disconnect()
+        sys.exit(0)
+
+    if client is not None and inp == "DISCONNECT":
+        if client is not None:
+            await client._disconnect()
+        return None
+
+    return inp
+    
 
 def parse_config_path() -> Path:
     def _missing_config() -> None:
@@ -245,32 +309,6 @@ def parse_config_path() -> Path:
         sys.stderr.write(f"client.py: File {config_path} does not exist")
         sys.exit(1)
     return config_path
-
-
-async def get_input(message : str | None = None, timeout: float | None = None, client : Client | None = None) -> str | None:
-    if message is not None:
-        print(message)
-
-    async def custom_input() -> str:
-        inp = await asyncio.to_thread(input)
-        if inp == "EXIT":
-            if client is not None:
-                await client._disconnect()
-            sys.exit(0)
-        return inp
-
-    if timeout is not None and timeout > 0:
-        try:
-            print(f"waiting user input for {timeout}")
-            inp = await asyncio.wait_for(custom_input(), timeout=timeout)
-        except asyncio.TimeoutError:
-            return None
-        else:
-            return inp
-
-    else:
-        inp = await custom_input()
-        return inp
 
 
 async def main():
