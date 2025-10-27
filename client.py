@@ -145,7 +145,7 @@ class Client:
                     asyncio.to_thread(generate_answer, qtype, squest),
                     timeout=qtimeout,
                 )
-                if self.is_command(ans):
+                if await self.is_command(ans):
                     return
 
                 answer["answer"] = ans
