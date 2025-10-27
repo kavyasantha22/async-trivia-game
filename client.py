@@ -25,6 +25,7 @@ class Client:
         self.connected = False
         self._shutdown_event = asyncio.Event()
         self._answer_task = None
+        self._recv_loop_task = None
 
 
     def _construct_hi_message(self) -> dict:
@@ -81,7 +82,11 @@ class Client:
         else:
             print("Other type of message is received???")
 
-        await self._recv_message_loop()
+        self._recv_loop_task = asyncio.create_task(self._recv_message_loop())
+        try:
+            await self._recv_loop_task
+        except asyncio.CancelledError:
+            pass
 
     
     async def _recv_message_loop(self):
@@ -196,7 +201,26 @@ class Client:
                 continue
 
 
+    async def request_shutdown(self):
+        if self._shutdown_event.is_set():
+            return
+        
+        self._shutdown_event.set()
+        self.connected = False
+        # close writer ASAP to unblock reader
+        if self.writer:
+            try:
+                self.writer.close()
+                # don't await here; let recv loop fall out first
+            except Exception:
+                pass
+        # cancel recv loop if it's still waiting
+        if self._recv_loop_task and not self._recv_loop_task.done():
+            self._recv_loop_task.cancel()
+
+
     async def shutdown(self) -> None:
+        # print("Shutting down process started")
         self.connected = False 
         
         if self.writer:
@@ -283,7 +307,8 @@ async def get_input(
     
     if inp == "EXIT":
         if client:
-            client._shutdown_event.set()
+            await client.request_shutdown()
+            # print("EXIT is received.")
             return None
         else:
             sys.exit(0)
