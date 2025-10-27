@@ -282,35 +282,53 @@ class Server:
     async def _handle_client(self, reader, writer) -> None:
         peer = writer.get_extra_info("peername")
         self._log(f"[+] connected {peer}")
-        try:
-            while True:
-                if reader is None or writer is None:
-                    # print("reader or writer is None!")
-                    break
-                try:
-                    data = await receive_message(reader)  
-                    print(data) 
-                except Exception as e:
-                    self._log(f"Receive error from {peer}: {e}")
-                    break                                   
-                if data is None:
-                    print("Data is none!")                            
-                    break
-                try:
-                    await self._process_message(data, writer)
-                except Exception as e:
-                    self._log(f"Process message error from {peer}: {e}")
-                    break
+        while True:
+            if reader is None or writer is None:
+                # print("reader or writer is None!")
+                break
+            try:
+                data = await receive_message(reader)  
+                print(data) 
+            except Exception as e:
+                self._log(f"Receive error from {peer}: {e}")
+                break                                   
+            if data is None:
+                print("Data is none!")                            
+                break
+            try:
+                await self._process_message(data, writer)
+            except Exception as e:
+                self._log(f"Process message error from {peer}: {e}")
+                break
+        # try:
+        #     while True:
+        #         if reader is None or writer is None:
+        #             # print("reader or writer is None!")
+        #             break
+        #         try:
+        #             data = await receive_message(reader)  
+        #             print(data) 
+        #         except Exception as e:
+        #             self._log(f"Receive error from {peer}: {e}")
+        #             break                                   
+        #         if data is None:
+        #             print("Data is none!")                            
+        #             break
+        #         try:
+        #             await self._process_message(data, writer)
+        #         except Exception as e:
+        #             self._log(f"Process message error from {peer}: {e}")
+        #             break
 
-                # If the session has been removed (e.g., BYE processed), stop reading
-                if self._find_session_by_writer(writer) is None:
-                    break
+        #         # If the session has been removed (e.g., BYE processed), stop reading
+        #         if self._find_session_by_writer(writer) is None:
+        #             break
 
-        finally:
-            # print("Dropping because there is an exception or data is empty")
-            # Avoid double-dropping if session already removed
-            if self._find_session_by_writer(writer) is not None:
-                await self._drop_session(writer)
+        # finally:
+        #     # print("Dropping because there is an exception or data is empty")
+        #     # Avoid double-dropping if session already removed
+        #     if self._find_session_by_writer(writer) is not None:
+        #         await self._drop_session(writer)
             print(f"[-] disconnected {peer}")
     
 
