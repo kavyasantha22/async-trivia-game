@@ -492,7 +492,7 @@ class Server:
             sess = ranking[i]
 
             if sess.point != prev_point:
-                rank += 1
+                rank += i
                 prev_point = sess.point
 
             str_ranking += f"{rank}. {sess.username}: {sess.point}"
