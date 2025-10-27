@@ -366,7 +366,7 @@ class Server:
 
         if mtype == "HI":
             username = received["username"]
-            print(f"{username} joined.")
+            # print(f"{username} joined.")
 
             if len(self._sessions.keys()) >= self._num_players:
                 print("Max players reached.")
