@@ -219,7 +219,7 @@ class Client:
                 continue
 
 
-    async def request_shutdown(self):
+    async def request_shutdown(self) -> None:
         if self._shutdown_event.is_set():
             return
         self._shutdown_event.set()
@@ -250,38 +250,16 @@ class Client:
 
 
 _STDIN_Q: asyncio.Queue[str] = asyncio.Queue()
-_STDIN_READER_INSTALLED = False
 
 
-def install_stdin_reader(client: Client | None = None) -> None:
-    global _STDIN_READER_INSTALLED
-    if _STDIN_READER_INSTALLED:
-        return
-    loop = asyncio.get_running_loop()
-
-    def _on_stdin_ready():
-        line = sys.stdin.readline().strip("\n")
-        if client is not None:
-            if line == "EXIT":
-                asyncio.create_task(client.request_shutdown())
-                return
-            if line == "DISCONNECT":
-                asyncio.create_task(client._disconnect())
-                return
-
-        _STDIN_Q.put_nowait(line.rstrip("\n"))
-
-    loop.add_reader(sys.stdin, _on_stdin_ready)
-    _STDIN_READER_INSTALLED = True
-
-
-def drain_stdin_queue() -> None:
-    try:
-        while True:
-            # This could be a problem, check later if a problem occurs
-            _STDIN_Q.get_nowait()
-    except asyncio.QueueEmpty:
-        pass
+async def install_stdin_reader(client: Client) -> None:
+    while True:
+        line = (await asyncio.to_thread(sys.stdin.readline)).strip()
+        if line == "EXIT":
+            await client.request_shutdown()
+            break
+        else:
+            await _STDIN_Q.put(line)
     
 
 def parse_config_path() -> Path:
@@ -298,6 +276,10 @@ def parse_config_path() -> Path:
         sys.exit(1)
     return config_path
 
+async def bfunc(client: Client):
+    while not client.is_shutting_down():
+        await client.prompt_connect()
+        await client.play()
 
 async def main():
     config_path = parse_config_path()
@@ -311,11 +293,11 @@ async def main():
         
     client = Client(username, mode, ollama_config)
 
-    install_stdin_reader(client)
+    a = asyncio.create_task(install_stdin_reader(client))
 
-    while not client.is_shutting_down():
-        await client.prompt_connect()
-        await client.play()
+    b = asyncio.create_task(bfunc(client))
+
+    await asyncio.wait([a,b],return_when=asyncio.FIRST_COMPLETED)
     
     sys.exit(0)
 
