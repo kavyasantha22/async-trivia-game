@@ -456,7 +456,10 @@ class Server:
     def _construct_ready_message(self) -> dict[str, Any]:
         return {
             "message_type" : "READY",
-            "info" : self._ready_info.replace("{question_interval_seconds}", str(self._question_interval))
+            "info" : self._ready_info.format(
+                question_interval_seconds=str(self._question_interval),
+                players=self._num_players
+            )
         }
 
 
