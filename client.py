@@ -23,6 +23,8 @@ class Client:
                 self._ollama_config = ollama_config            
         self.reader, self.writer = None, None
         self.connected = False
+        self._shutdown_event = asyncio.Event()
+        self._answer_task = None
 
 
     def _construct_hi_message(self) -> dict:
@@ -83,7 +85,7 @@ class Client:
 
     
     async def _recv_message_loop(self):
-        while self.connected:
+        while self.connected and not self.is_shutting_down():
             msg = await receive_message(self.reader)
             if not msg:
                 break
@@ -92,7 +94,7 @@ class Client:
                 print(msg["info"])
             elif t == "QUESTION":
                 print(msg["trivia_question"])
-                asyncio.create_task(self._answer_question(msg, msg["time_limit"])) 
+                self._answer_task = asyncio.create_task(self._answer_question(msg, msg["time_limit"])) 
             elif t == "RESULT":
                 print(msg["feedback"])
             elif t == "LEADERBOARD":
@@ -106,6 +108,9 @@ class Client:
             
  
     async def _answer_question(self, question, qtimeout: float | int) -> None:
+        if self.is_shutting_down() or not self.writer: 
+            return
+        
         if not self.writer:
             return 
         
@@ -115,7 +120,7 @@ class Client:
         try:
             if self.mode == 'you':
                 ans = await get_input(timeout=qtimeout, client=self)
-                if ans is not None:
+                if ans:
                     answer["answer"] = ans
                 else:
                     return None
@@ -175,7 +180,7 @@ class Client:
 
     async def prompt_connect(self) -> None:
         while True:
-            inp = (await get_input())
+            inp = (await get_input(client=self))
             if inp is None:
                 continue 
             inp = inp.split()
@@ -190,6 +195,40 @@ class Client:
                 print(f"Connection failed")
                 continue
 
+
+    async def shutdown(self) -> None:
+        self.connected = False 
+        
+        if self.writer:
+            await self._disconnect()
+
+            try:
+                self.writer.close()
+                await self.writer.wait_closed()
+            except Exception:
+                pass
+        
+        self.writer = None
+        self.reader = None
+
+
+    async def _cancel_answer_task(self):
+        t = self._answer_task
+        if not t: 
+            return
+        
+        if not t.done():
+            t.cancel()
+            try:
+                await t
+            except asyncio.CancelledError:
+                pass
+
+        self._answer_task = None
+
+
+    def is_shutting_down(self):
+        return self._shutdown_event.is_set()
 
 
 _STDIN_Q: asyncio.Queue[str] = asyncio.Queue()
@@ -221,7 +260,6 @@ def drain_stdin_queue() -> None:
         pass
 
 
-
 async def get_input(
     message: Optional[str] = None,
     timeout: Optional[float] = None,
@@ -244,9 +282,11 @@ async def get_input(
         return None
     
     if inp == "EXIT":
-        if client is not None:
-            await client._disconnect()
-        sys.exit(0)
+        if client:
+            client._shutdown_event.set()
+            return None
+        else:
+            sys.exit(0)
 
     if client is not None and inp == "DISCONNECT":
         if client is not None:
@@ -254,6 +294,7 @@ async def get_input(
         return None
 
     return inp
+
     
 
 def parse_config_path() -> Path:
@@ -283,9 +324,13 @@ async def main():
         
     client = Client(username, mode, ollama_config)
 
-    while True:
+    while not client.is_shutting_down():
         await client.prompt_connect()
         await client.play()
+    
+    # Ill put every shutdown related here
+    await client.shutdown()
+    sys.exit(0)
 
 
 
