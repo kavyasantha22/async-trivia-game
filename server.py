@@ -140,13 +140,13 @@ class Server:
                     self._question_round = self._generate_question_round()
                     question_round_start = None
                     self._state = GameState.QUESTION
-                    print(self._state)
+                    # print(self._state)
                     question_msg = self._construct_question_message()
                     await self._broadcast(question_msg)
 
                 # ready messagen not sent
                 elif len(self._sessions) >= self._num_players and question_round_start is None:
-                    print("Everyone has joined!")
+                    # print("Everyone has joined!")
                     ready_msg = self._construct_ready_message()
                     question_round_start = cur_time + self._question_interval
                     await self._broadcast(ready_msg)
@@ -226,7 +226,7 @@ class Server:
 
 
     async def _broadcast(self, message: dict[str, Any]) -> None:
-        print("broadcasting...")
+        # print("broadcasting...")
         tasks = []
 
         for sess in list(self._active_sessions):
@@ -245,7 +245,7 @@ class Server:
         try:
             while True:
                 if reader is None or writer is None:
-                    print("reader or writer is None!")
+                    # print("reader or writer is None!")
                     break
                 try:
                     data = await receive_message(reader)   
