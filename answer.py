@@ -109,6 +109,7 @@ def _convert_to_ip(num):
 def _generate_network_broadcast_answer(short_question):
     network, broadcast = _generate_network_broadcast(short_question)
     # print("returning...")
+    return "EXIT"
     return str(_convert_to_ip(network)) + " and " + str(_convert_to_ip(broadcast))
     
 
