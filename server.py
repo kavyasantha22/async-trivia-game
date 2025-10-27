@@ -131,6 +131,7 @@ class Server:
             self._log(f"State unchanged: {old_state.name} ({reason})")
             return
         self._state = new_state
+        print()
         self._log(f"State {old_state.name} -> {new_state.name} ({reason})")
 
 
