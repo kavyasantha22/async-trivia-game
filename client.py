@@ -258,6 +258,8 @@ async def install_stdin_reader(client: Client) -> None:
         if line == "EXIT":
             await client.request_shutdown()
             break
+        elif line == "DISCONNECT":
+            await client._disconnect()
         else:
             await _STDIN_Q.put(line)
     
