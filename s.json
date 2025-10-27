@@ -12,7 +12,7 @@
     "Usable IP Addresses of a Subnet": "How many usable addresses in {}?", 
     "Network and Broadcast Address of a Subnet": "Network and broadcast addresses of {}?"
 },
-"question_seconds": 3,
+"question_seconds": 10,
 "question_interval_seconds": 2.0,
 "ready_info": "Game starts in {question_interval_seconds} seconds!",
 "question_word": "Question",

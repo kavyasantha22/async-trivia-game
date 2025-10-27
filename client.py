@@ -114,7 +114,7 @@ class Client:
         }
         try:
             if self.mode == 'you':
-                ans = await get_input(timeout=qtimeout)
+                ans = await get_input(timeout=qtimeout, client=self)
                 if ans is not None:
                     answer["answer"] = ans
                 else:
