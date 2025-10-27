@@ -157,7 +157,7 @@ class Client:
                 else:
                     answer["answer"] = ""
 
-                if self.is_command(ans):
+                if await self.is_command(ans):
                     return
 
             await send_message(self.writer, answer)
@@ -209,8 +209,6 @@ class Client:
                     return
                 continue
 
-            if inp is None:
-                continue 
             inp = inp.split()
             if inp[0] != "CONNECT":
                 print("Unrecognised command.")
