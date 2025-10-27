@@ -21,5 +21,5 @@ async def receive_message(reader: asyncio.StreamReader) -> dict | None:
     if not line:
         return None
     decoded = decode_message(line)  
-    print(decoded)
+    # print(decoded)
     return decoded
