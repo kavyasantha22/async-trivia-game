@@ -1,49 +1,49 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Usage:
-#   ./push.sh          # remove test_config.json from .gitignore (if present)
-#   ./push.sh --all    # ensure test_config.json is ignored and untracked
-
 ARG="${1-}"
+
+smart_mv() {
+  # Usage: smart_mv SRC DST
+  local SRC="$1" DST="$2"
+  if [[ -e "$SRC" ]]; then
+    if git ls-files --error-unmatch "$SRC" >/dev/null 2>&1; then
+      git mv -f "$SRC" "$DST"
+    else
+      mv -f "$SRC" "$DST"
+    fi
+  else
+    echo "Note: $SRC not found; nothing to rename." >&2
+  fi
+}
+
+COMMIT_MSG="automatic push"
 
 case "$ARG" in
   --all)
-    # Ensure .gitignore exists and contains the line exactly once
-    touch .gitignore
-    if ! grep -qxF 'test_config.json' .gitignore; then
-      echo 'test_config.json' >> .gitignore
-    fi
-    # If the file is tracked, stop tracking it (but keep working copy)
-    if git ls-files --error-unmatch test_config.json >/dev/null 2>&1; then
-      git rm --cached test_config.json
-    fi
+    smart_mv "test_config.json" "no_config.json"
+    COMMIT_MSG="$COMMIT_MSG (--all: test_config.json → no_config.json)"
     ;;
-  "" )
-    # Remove the exact line from .gitignore, if present (portable macOS/Linux sed)
-    if [[ -f .gitignore ]]; then
-      sed -i.bak '/^test_config\.json$/d' .gitignore && rm -f .gitignore.bak
+  "")
+    if [[ -e "no_config.json" ]]; then
+      smart_mv "no_config.json" "test_config.json"
+      COMMIT_MSG="$COMMIT_MSG (default: no_config.json → test_config.json)"
+    else
+      echo "Note: neither no_config.json nor no_config.son found; nothing to rename." >&2
     fi
     ;;
   *)
-    echo "Unknown argument: $ARG"
     echo "Usage: $0 [--all]"
     exit 2
     ;;
 esac
 
-# Your original workflow
+# Keep your original workflow
 echo "a" >> a.txt
 
-# NOTE: a bare `git checkout` is invalid and will error out.
-# If you intended to discard local changes, use one of:
-#   git checkout -- .
-#   git restore --source=HEAD --worktree --staged .
-# (Left out here to avoid unintended resets.)
+# Avoid bare 'git checkout' (it's invalid). If you meant to discard changes, do it explicitly.
+# git checkout -- .    # or: git restore --source=HEAD --worktree --staged .
 
-# Stage .gitignore changes explicitly (in case only it changed)
-git add .gitignore || true
-git add .
-
-git commit -m "automatic push" || true
+git add -A
+git commit -m "$COMMIT_MSG" || true
 git push upstream master
