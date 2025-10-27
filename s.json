@@ -1,6 +1,6 @@
 {
 "port": 7777,
-"players": 1,
+"players": 2,
 "question_types": [
     "Usable IP Addresses of a Subnet",
     "Network and Broadcast Address of a Subnet",

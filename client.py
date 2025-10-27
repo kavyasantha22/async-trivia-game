@@ -23,9 +23,12 @@ class Client:
                 self._ollama_config = ollama_config            
         self.reader, self.writer = None, None
         self.connected = False
+        self.has_answered: bool | None = None
         self._shutdown_event = asyncio.Event()
+
         self._answer_task = None
         self._recv_loop_task = None
+        self._input_task = None
 
 
     def _construct_hi_message(self) -> dict:
@@ -132,11 +135,9 @@ class Client:
         }
         try:
             if self.mode == 'you':
-                ans = await get_input(timeout=qtimeout, client=self)
+                ans = await asyncio.wait_for(_STDIN_Q.get(), timeout=qtimeout)
                 if ans:
                     answer["answer"] = ans
-                else:
-                    return None
 
             elif self.mode == 'auto':
                 qtype = question['question_type'] 
@@ -145,8 +146,6 @@ class Client:
                     asyncio.to_thread(generate_answer, qtype, squest),
                     timeout=qtimeout,
                 )
-                if await self.is_command(ans):
-                    return
 
                 answer["answer"] = ans
 
@@ -157,8 +156,6 @@ class Client:
                 else:
                     answer["answer"] = ""
 
-                if await self.is_command(ans):
-                    return
 
             await send_message(self.writer, answer)
         except asyncio.TimeoutError:
@@ -202,7 +199,7 @@ class Client:
             if self.is_shutting_down():     
                 return
             
-            inp = (await get_input())
+            inp = await _STDIN_Q.get()
 
             if inp is None:
                 if self.is_shutting_down(): 
@@ -256,16 +253,22 @@ _STDIN_Q: asyncio.Queue[str] = asyncio.Queue()
 _STDIN_READER_INSTALLED = False
 
 
-def install_stdin_reader() -> None:
+def install_stdin_reader(client: Client | None = None) -> None:
     global _STDIN_READER_INSTALLED
     if _STDIN_READER_INSTALLED:
         return
     loop = asyncio.get_running_loop()
 
     def _on_stdin_ready():
-        line = sys.stdin.readline()
-        if line == "":  
-            return
+        line = sys.stdin.readline().strip("\n")
+        if client is not None:
+            if line == "EXIT":
+                asyncio.create_task(client.request_shutdown())
+                return
+            if line == "DISCONNECT":
+                asyncio.create_task(client._disconnect())
+                return
+
         _STDIN_Q.put_nowait(line.rstrip("\n"))
 
     loop.add_reader(sys.stdin, _on_stdin_ready)
@@ -279,45 +282,6 @@ def drain_stdin_queue() -> None:
             _STDIN_Q.get_nowait()
     except asyncio.QueueEmpty:
         pass
-
-
-async def get_input(
-    message: Optional[str] = None,
-    timeout: Optional[float] = None,
-    client: Optional[Client] = None,
-) -> str | None:
-    
-    install_stdin_reader()
-
-    if message:
-        print(message)
-
-    drain_stdin_queue()
-
-    try:
-        if timeout and timeout > 0:
-            inp = await asyncio.wait_for(_STDIN_Q.get(), timeout=timeout)
-        else:
-            inp = await _STDIN_Q.get()
-    except asyncio.TimeoutError:
-        return None
-    
-    if inp == "EXIT":
-        if client:
-            await client.request_shutdown()
-            # print("EXIT is received.")
-            return None
-        else:
-            # print("it goes here")
-            sys.exit(0)
-
-    if client is not None and inp == "DISCONNECT":
-        if client is not None:
-            await client._disconnect()
-        return None
-
-    return inp
-
     
 
 def parse_config_path() -> Path:
@@ -346,6 +310,8 @@ async def main():
     ollama_config = config.get('ollama_config')
         
     client = Client(username, mode, ollama_config)
+
+    install_stdin_reader(client)
 
     while not client.is_shutting_down():
         await client.prompt_connect()
