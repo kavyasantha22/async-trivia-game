@@ -81,40 +81,6 @@ class Client:
 
         await self._recv_message_loop()
 
-        # while self.connected:
-        #     # print(2)
-        #     recv_msg = await receive_message(self.reader)
-
-        #     if recv_msg is None:
-        #         return
-        
-        #     if recv_msg['message_type'] == "QUESTION":
-        #         print(recv_msg["trivia_question"])
-
-        #         qtimeout = recv_msg["time_limit"]
-        #         answer = await self.construct_answer_message(recv_msg, qtimeout)
-        #         if answer is not None:
-        #             await send_message(self.writer, answer)
-
-        #     elif recv_msg['message_type'] == "RESULT":
-        #         print(recv_msg['feedback'])
-
-        #     elif recv_msg['message_type'] == "LEADERBOARD":
-        #         print(recv_msg["state"])
-
-        #     elif recv_msg['message_type'] == "FINISHED":
-        #         print(recv_msg["final_standings"])
-        #         # await self._disconnect()
-        #         self.connected = False
-
-        #     elif recv_msg['message_type'] == "READY":
-        #         print(recv_msg["info"])
-
-        #     else:
-        #         print("Not recognised message type")
-                
-        # return
-
     
     async def _recv_message_loop(self):
         while self.connected:
@@ -173,16 +139,7 @@ class Client:
             await send_message(self.writer, answer)
         except asyncio.TimeoutError:
             return None
-    
-
-    # async def handle_input(self, message=None, timeout=None) -> str | None:
-    #     inp = await get_input(message=message, client=self, timeout=timeout)
-    #     if inp == "DISCONNECT":
-    #         await self._disconnect()
-    #         return ""
-    #     else:
-    #         return inp
-        
+              
 
     async def _ask_ollama(self, question: dict[str, Any], timeout: float) -> str | None:
         def _call():
