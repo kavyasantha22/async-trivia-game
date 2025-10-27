@@ -107,6 +107,17 @@ class Client:
                 break
             else:
                 print("Not recognised message type")
+
+    
+    async def is_command(self, inp):
+        match (inp):
+            case "EXIT":
+                await self.request_shutdown()
+                return True
+            case "DISCONNECT":
+                return True
+            case _:
+                return False
             
  
     async def _answer_question(self, question, qtimeout: float | int) -> None:
@@ -134,6 +145,9 @@ class Client:
                     asyncio.to_thread(generate_answer, qtype, squest),
                     timeout=qtimeout,
                 )
+                if self.is_command(ans):
+                    return
+
                 answer["answer"] = ans
 
             elif self.mode == 'ai':
@@ -142,6 +156,9 @@ class Client:
                     answer["answer"] = ans
                 else:
                     answer["answer"] = ""
+
+                if self.is_command(ans):
+                    return
 
             await send_message(self.writer, answer)
         except asyncio.TimeoutError:
