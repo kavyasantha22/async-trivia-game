@@ -185,7 +185,7 @@ class Client:
 
     async def prompt_connect(self) -> None:
         while True:
-            inp = (await get_input(client=self))
+            inp = (await get_input())
             if inp is None:
                 continue 
             inp = inp.split()
@@ -311,6 +311,7 @@ async def get_input(
             # print("EXIT is received.")
             return None
         else:
+            print("it goes here")
             sys.exit(0)
 
     if client is not None and inp == "DISCONNECT":
