@@ -59,8 +59,8 @@ class QuestionRound:
 
 class Server:
     def __init__(self, port: int, players: int, question_types: list[str],
-                 question_formats: dict, question_seconds: int, 
-                 question_interval_seconds: float, ready_info: str, 
+                 question_formats: dict, question_seconds: int | float, 
+                 question_interval_seconds: int | float, ready_info: str, 
                  question_word: str, correct_answer: str,
                  incorrect_answer: str, points_noun_singular: str,
                  points_noun_plural: str, final_standings_heading: str,
@@ -465,8 +465,7 @@ class Server:
 
     def _construct_question_message(self) -> dict[str, Any]:
         if self._question_round is None:
-            print("question round is None when sending question")
-            return {}
+            self._log("Question round is none!")
         
         return {
             "message_type" : "QUESTION",
