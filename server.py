@@ -94,9 +94,11 @@ class Server:
         self._state : GameState = GameState.WAITING_FOR_PLAYERS
         self._log(f"Initialised server on {self._host}:{self._port}; awaiting {self._num_players} players; state={self._state.name}")
 
+
     def _log(self, message: str) -> None:
         ts = time.strftime("%H:%M:%S")
         print(f"[SRV {ts}] {message}")
+
 
     def _summarize_message(self, message: dict[str, Any]) -> str:
         try:
@@ -133,7 +135,7 @@ class Server:
             sys.stderr.write(f"server.py: Binding to port {self._port} was unsuccessful\n")
             sys.exit(1)
 
-        socknames = ", ".join(str(s.getsockname()) for s in (self._asyncio_server.sockets or []))
+        socknames = ", ".join(str(s.getsockname()) for s in (server.sockets or []))
         self._log(f"Listening on {socknames}")
 
         async with server:
