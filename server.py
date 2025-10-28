@@ -384,7 +384,7 @@ class Server:
         return {
             "message_type" : "READY",
             "info" : self._ready_info.format(
-                question_interval_seconds=str(self._question_interval),
+                question_interval_seconds=self._question_interval,
                 players=self._num_players
             )
         }
