@@ -8,7 +8,7 @@ from questions import (
 ) 
 from enum import Enum, auto
 from typing import Any
-from dataclasses import dataclass, field, asdict
+from dataclasses import dataclass, field, asdict, fields
 from answer import generate_answer
 import sys
 import json
@@ -608,11 +608,16 @@ class Server:
             print(question_type)
             return ""
 
+def from_dict(data: dict[str, Any]) -> ServerMessageConfig:
+    allowed = {f.name for f in fields(ServerMessageConfig)}
+    clean = {k: v for k, v in data.items() if k in allowed}
+    return ServerMessageConfig(**clean)
+
 
 def load_config(path: Path) -> Server:
     with Path.open(path, "r", encoding="utf-8") as f:
         cfg = json.load(f)
-    s = Server(**cfg, message_config=ServerMessageConfig(**cfg))
+    s = Server(**cfg, message_config=from_dict(**cfg))
     return s
 
 
