@@ -30,14 +30,14 @@ class Client:
         self._input_task = None
 
 
-    def _construct_hi_message(self) -> dict:
+    def _construct_hi_message(self) -> dict[str, str]:
         return {
             "message_type": "HI",
             "username": self.username
         }
     
 
-    def _construct_bye_message(self) -> dict:
+    def _construct_bye_message(self) -> dict[str, str]:
         return {
             "message_type": "BYE"
         }
@@ -50,6 +50,7 @@ class Client:
         # print(f"Connected to {peer}")
         msg = self._construct_hi_message()
         await send_message(self.writer, msg)
+        print("HI message is sent!")
         self.connected = True
 
 
@@ -205,7 +206,7 @@ class Client:
                 hostname, port = inp[1].split(":")
                 await self._connect(hostname, port)
                 break
-            except Exception as e:
+            except Exception:
                 print(f"Connection failed")
                 continue
 
