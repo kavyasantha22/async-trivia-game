@@ -44,6 +44,7 @@ class Client:
 
 
     async def _connect(self, hostname: str, port: str) -> None:
+        print("Trying to connect...")
         self.reader, self.writer = await asyncio.open_connection(hostname, int(port))
         # peer = self.writer.get_extra_info("peername")
         # print(f"Connected to {peer}")
