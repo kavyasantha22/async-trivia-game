@@ -71,10 +71,11 @@ class Client:
         if self.reader is None or self.writer is None:
             print("You are not connected yet. Cannot play.")
             return
-        
+        print(f"{self.username} is waiting for ready message...")
         ready_msg = await receive_message(self.reader)
 
         if ready_msg is None:
+            print(f"{self.username} ready message is not received. Trying to disconenct...")
             await self._disconnect()
             return
         
