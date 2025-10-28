@@ -255,7 +255,7 @@ class Server:
             else:
                 pass
 
-            await asyncio.sleep(0.1)
+            await asyncio.sleep(0.025)
 
 
     async def _shutdown_everything(self):
