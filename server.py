@@ -481,9 +481,15 @@ class Server:
                 if winner_point == sess.point:
                     temp += sess.username + ", "
             temp = temp[:-2]
-            str_ranking += self._multiple_winner_message.replace("{}", temp)
+            str_ranking += self._multiple_winner_message.format(
+                temp,
+                **asdict(self.config_message)
+            )
         else:
-            str_ranking += self._one_winner_message.replace("{}", ranking[0].username)
+            str_ranking += self._one_winner_message.format(
+                ranking[0].username,
+                **asdict(self.config_message)
+            )
 
         msg["final_standings"] = str_ranking 
         return msg
