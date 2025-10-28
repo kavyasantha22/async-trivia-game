@@ -8,13 +8,31 @@ from questions import (
 ) 
 from enum import Enum, auto
 from typing import Any
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, fields, asdict
 from answer import generate_answer
 import sys
 import json
 from pathlib import Path
 import time
 
+@dataclass
+class ServerMessageConfig:
+    port: int
+    players: int
+    question_types: list[str]
+    question_formats: dict[str, str]
+    question_seconds: int
+    question_interval_seconds: float
+    ready_info: str
+    question_word: str
+    correct_answer: str
+    incorrect_answer: str
+    points_noun_singular: str
+    points_noun_plural: str
+    final_standings_heading: str
+    one_winner: str
+    multiple_winners: str
+    
 
 class ClientSession:
     def __init__(self, username: str, writer: asyncio.StreamWriter | None):
@@ -64,7 +82,7 @@ class Server:
                  question_word: str, correct_answer: str,
                  incorrect_answer: str, points_noun_singular: str,
                  points_noun_plural: str, final_standings_heading: str,
-                 one_winner: str, multiple_winners: str):
+                 one_winner: str, multiple_winners: str, config_message: ServerMessageConfig):
         self._host = "0.0.0.0"
         self._port = port
         self._num_players = players
@@ -81,7 +99,8 @@ class Server:
         self._final_standings_heading = final_standings_heading
         self._one_winner_message = one_winner
         self._multiple_winner_message = multiple_winners
-
+        
+        self.config_message: ServerMessageConfig = config_message
         self._join_cond: asyncio.Condition = asyncio.Condition()
         self._answer_cond: asyncio.Condition | None = None
         self._round_no = 0
@@ -386,11 +405,10 @@ class Server:
             "message_type" : "READY"
         }
         self._log("Ready message is halfway done!")
-        msg["info"] = ""
-        # msg["info"] = self._ready_info.format(
-        #     question_interval_seconds=self._question_interval,
-        #     players=self._num_players
-        # )
+        # msg["info"] = ""
+        msg["info"] = self._ready_info.format(
+            asdict(self.config_message)
+        )
         self._log("Ready message is being returned now!")
         return msg
 
@@ -401,12 +419,13 @@ class Server:
         }
         if correct_answer is not None and correct_answer == answer:
             msg["correct"] = True
-            msg["feedback"] = self._correct_answer_message.replace("{answer}", answer)
+            msg["feedback"] = self._correct_answer_message.format(
+                asdict(self.config_message)
+            )
         else:
             msg["correct"] = False
             msg["feedback"] = self._incorrect_answer_message.format(
-                correct_answer=correct_answer,
-                answer=answer
+                asdict(self.config_message)
             )
 
         return msg
@@ -495,11 +514,17 @@ class Server:
             print(question_type)
             return ""
 
+def from_dict(data: dict[str, Any]) -> ServerMessageConfig:
+    allowed = {f.name for f in fields(ServerMessageConfig)}
+    clean = {k: v for k, v in data.items() if k in allowed}
+    # print(clean)
+    return ServerMessageConfig(**clean)
+
 
 def load_config(path: Path) -> Server:
     with Path.open(path, "r", encoding="utf-8") as f:
         cfg = json.load(f)
-    return Server(**cfg)
+    return Server(**cfg, config_message=from_dict(cfg))
 
 
 def parse_config_path() -> Path:
