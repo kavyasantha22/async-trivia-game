@@ -410,9 +410,9 @@ class Server:
                 print("Max players reached.")
                 return
             
-            if username in self._sessions.keys():
-                print("username taken.")
-                return
+            # if username in self._sessions.keys():
+            #     print("username taken.")
+            #     return
 
             new_session = ClientSession(username, writer)
             self._sessions[username] = new_session
