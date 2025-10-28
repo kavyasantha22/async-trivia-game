@@ -405,9 +405,6 @@ class Server:
             "message_type" : "READY"
         }
         self._log("Ready message is halfway done!")
-        # msg["info"] = ""
-        # print(self._ready_info)
-        # print(asdict(self.config_message))
         msg["info"] = self._ready_info.format(
             **asdict(self.config_message)
         )
@@ -470,7 +467,9 @@ class Server:
         ranking = sorted(self._sessions.values(),
                 key=lambda session: (-1*session.point, session.username))
         
-        str_ranking = f"{self._final_standings_heading}\n"
+        str_ranking = f"{self._final_standings_heading.format(
+            **asdict(self.config_message)
+        )}\n"
 
         str_ranking += self._construct_leaderboard_message()["state"] + '\n'
 
