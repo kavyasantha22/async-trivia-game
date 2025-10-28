@@ -64,7 +64,7 @@ class Client:
 
         self.connected = False
         self.reader, self.writer = None, None
-        return True
+        return True 
         
 
     async def play(self) -> None:
@@ -76,6 +76,7 @@ class Client:
             ready_msg = await receive_message(self.reader)
         except Exception as e:
             print(f"{self.username} got {e}")
+            return 
 
         if ready_msg is None:
             print(f"{self.username} ready message is not received. Trying to disconenct...")

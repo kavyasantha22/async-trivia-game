@@ -8,7 +8,7 @@ from questions import (
 ) 
 from enum import Enum, auto
 from typing import Any
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, asdict
 from answer import generate_answer
 import sys
 import json
@@ -21,6 +21,25 @@ import time
 #     level=logging.DEBUG,
 #     format="%(asctime)s %(levelname)s %(name)s: %(message)s",
 # )
+
+@dataclass
+class ServerMessageConfig:
+    host: str
+    port: int
+    players: int
+    # question_types: list[str]
+    # question_formats: dict[str, str]
+    question_seconds: int
+    question_interval_seconds: float
+    ready_info: str
+    # question_word: str
+    correct_answer: str
+    incorrect_answer: str
+    # points_noun_singular: str
+    # points_noun_plural: str
+    final_standings_heading: str
+    one_winner: str
+    multiple_winners: str
 
 
 
@@ -72,7 +91,7 @@ class Server:
                  question_word: str, correct_answer: str,
                  incorrect_answer: str, points_noun_singular: str,
                  points_noun_plural: str, final_standings_heading: str,
-                 one_winner: str, multiple_winners: str):
+                 one_winner: str, multiple_winners: str, message_config : ServerMessageConfig):
         self._host = "0.0.0.0"
         self._port = port
         self._num_players = players
@@ -91,6 +110,7 @@ class Server:
         self._multiple_winner_message = multiple_winners
 
         # self._reader, self._writer = await self.connect(port)
+        self.message_config: ServerMessageConfig = message_config
         self._asyncio_server : asyncio.Server | None = None
         self._orchestrator_task : asyncio.Task | None = None
         self._round_no = 0
@@ -446,10 +466,7 @@ class Server:
         qtype = self._question_types[self._round_no - 1]
         short_question = self._generate_short_question(qtype)
         trivia_question = self._TRIVIA_QUESTION_FORMAT.format(
-            question_word=self._question_word,
-            question_number=self._round_no,
-            question_type=qtype,
-            question=self._question_formats[qtype].replace("{}", short_question)
+            asdict(self.message_config)
         )
         started_at = loop.time()
         finished_at = started_at + self._question_seconds
@@ -480,8 +497,7 @@ class Server:
         return {
             "message_type" : "READY",
             "info" : self._ready_info.format(
-                question_interval_seconds=str(self._question_interval),
-                players=self._num_players
+                asdict(self.message_config)
             )
         }
 
@@ -492,12 +508,13 @@ class Server:
         }
         if correct_answer is not None and correct_answer == answer:
             msg["correct"] = True
-            msg["feedback"] = self._correct_answer_message.replace("{answer}", answer)
+            msg["feedback"] = self._correct_answer_message.format(
+                asdict(self.message_config)
+            )
         else:
             msg["correct"] = False
             msg["feedback"] = self._incorrect_answer_message.format(
-                correct_answer=correct_answer,
-                answer=answer
+                asdict(self.message_config)
             )
 
         return msg
@@ -551,9 +568,13 @@ class Server:
                 if winner_point == sess.point:
                     temp += sess.username + ", "
             temp = temp[:-2]
-            str_ranking += self._multiple_winner_message.replace("{}", temp)
+            str_ranking += self._multiple_winner_message.replace("{}", temp).format(
+                asdict(self.message_config)
+            )
         else:
-            str_ranking += self._one_winner_message.replace("{}", ranking[0].username)
+            str_ranking += self._one_winner_message.replace("{}", ranking[0].username).format(
+                asdict(self.message_config)
+            )
 
         msg["final_standings"] = str_ranking 
         return msg
@@ -591,7 +612,8 @@ class Server:
 def load_config(path: Path) -> Server:
     with Path.open(path, "r", encoding="utf-8") as f:
         cfg = json.load(f)
-    return Server(**cfg)
+    s = Server(**cfg, message_config=ServerMessageConfig(**cfg))
+    return s
 
 
 def parse_config_path() -> Path:
