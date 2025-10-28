@@ -46,8 +46,6 @@ class Client:
     async def _connect(self, hostname: str, port: str) -> None:
         print("Trying to connect...")
         self.reader, self.writer = await asyncio.open_connection(hostname, int(port))
-        # peer = self.writer.get_extra_info("peername")
-        # print(f"Connected to {peer}")
         msg = self._construct_hi_message()
         await send_message(self.writer, msg)
         self.connected = True
@@ -182,7 +180,6 @@ class Client:
             "stream": False
         }
         try:
-            # Outer timeout guards total time; inner tuple guards per I/O op
             resp = await asyncio.wait_for(asyncio.to_thread(_call), timeout=timeout)
             return resp.json()["message"]["content"]
         except asyncio.TimeoutError:
@@ -219,7 +216,6 @@ class Client:
             return
         self._shutdown_event.set()
         await self._disconnect()
-        # close writer ASAP to unblock reader
         await self._cancel_answer_task()
         if self._recv_loop_task and not self._recv_loop_task.done():
             self._recv_loop_task.cancel()
