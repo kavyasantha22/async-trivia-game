@@ -8,32 +8,19 @@ from questions import (
 ) 
 from enum import Enum, auto
 from typing import Any
-from dataclasses import dataclass, field, asdict, fields
+from dataclasses import dataclass, field
 from answer import generate_answer
 import sys
 import json
 from pathlib import Path
-
+# import logging
+# import traceback
 import time
 
-
-@dataclass
-class ServerMessageConfig:
-    port: int
-    players: int
-    question_types: list[str]
-    question_formats: dict[str, str]
-    question_seconds: int
-    question_interval_seconds: float
-    ready_info: str
-    question_word: str
-    correct_answer: str
-    incorrect_answer: str
-    points_noun_singular: str
-    points_noun_plural: str
-    final_standings_heading: str
-    one_winner: str
-    multiple_winners: str
+# logging.basicConfig(
+#     level=logging.DEBUG,
+#     format="%(asctime)s %(levelname)s %(name)s: %(message)s",
+# )
 
 
 
@@ -85,7 +72,7 @@ class Server:
                  question_word: str, correct_answer: str,
                  incorrect_answer: str, points_noun_singular: str,
                  points_noun_plural: str, final_standings_heading: str,
-                 one_winner: str, multiple_winners: str, message_config : ServerMessageConfig):
+                 one_winner: str, multiple_winners: str):
         self._host = "0.0.0.0"
         self._port = port
         self._num_players = players
@@ -104,7 +91,6 @@ class Server:
         self._multiple_winner_message = multiple_winners
 
         # self._reader, self._writer = await self.connect(port)
-        self.message_config: ServerMessageConfig = message_config
         self._asyncio_server : asyncio.Server | None = None
         self._orchestrator_task : asyncio.Task | None = None
         self._round_no = 0
@@ -150,26 +136,6 @@ class Server:
 
 
     async def start(self) -> None:
-        # config_snapshot = {
-        #     "host": self._host,
-        #     "port": self._port,
-        #     "players": self._num_players,
-        #     "question_types": self._question_types,
-        #     "question_formats": self._question_formats,
-        #     "question_seconds": self._question_seconds,
-        #     "question_interval_seconds": self._question_interval,
-        #     "ready_info": self._ready_info,
-        #     "question_word": self._question_word,
-        #     "correct_answer_message": self._correct_answer_message,
-        #     "incorrect_answer_message": self._incorrect_answer_message,
-        #     "points_noun_singular": self._points_noun_singular,
-        #     "points_noun_plural": self._points_noun_plural,
-        #     "final_standings_heading": self._final_standings_heading,
-        #     "one_winner_message": self._one_winner_message,
-        #     "multiple_winner_message": self._multiple_winner_message,
-        # }
-        # self._log("Configuration:\n" + json.dumps(config_snapshot, indent=2))
-
         try:
             self._asyncio_server = await asyncio.start_server(self._handle_client, host=self._host, port=self._port)
         except Exception as e:
@@ -181,18 +147,22 @@ class Server:
         socknames = ", ".join(str(s.getsockname()) for s in (self._asyncio_server.sockets or []))
         self._log(f"Listening on {socknames}")
 
-        self._orchestrator_task = asyncio.create_task(self._orchestrator())
-        self._orchestrator_task.add_done_callback(
-            lambda t: t.exception()
-        )
+        # self._orchestrator_task = asyncio.create_task(self._orchestrator())
+        # self._orchestrator_task.add_done_callback(
+        #     lambda t: t.exception()
+        # )
 
-        try:
-            async with self._asyncio_server:
-                await self._asyncio_server.serve_forever()
-        except Exception as e:
-            print(e)
-        finally:
-            return
+        # try:
+        #     async with self._asyncio_server:
+        #         await self._asyncio_server.serve_forever()
+        # except Exception as e:
+        #     print(e)
+        # finally:
+        #     return
+
+        async with asyncio.TaskGroup() as tg:
+            tg.create_task(self._orchestrator())
+            tg.create_task(self._asyncio_server.serve_forever())
 
 
     # double check
@@ -214,11 +184,9 @@ class Server:
 
                 # ready messagen not sent
                 elif len(self._sessions) >= self._num_players and question_round_start is None:
-                    self._log("Everyone has joined!")
+                    # print("Everyone has joined!")
                     ready_msg = self._construct_ready_message()
-                    self._log("ready message is sent.")
                     question_round_start = cur_time + self._question_interval
-                    # print("it goes to the right branch")
                     await self._broadcast(ready_msg)
 
             elif self._state is GameState.QUESTION:
@@ -255,7 +223,7 @@ class Server:
             else:
                 pass
 
-            await asyncio.sleep(0.025)
+            await asyncio.sleep(0.05)
 
 
     async def _shutdown_everything(self):
@@ -325,13 +293,12 @@ class Server:
                 break
             try:
                 data = await receive_message(reader)  
-                print(data) 
+                # print(data) 
             except Exception as e:
                 self._log(f"Receive error from {peer}: {e}")
                 break                                   
             if data is None:
-                self._log(f"is disconnected? {reader.at_eof()}")
-                self._log(f"{self._find_session_by_writer(writer).username} is none!")                            
+                print("Data is none!")                            
                 break
             try:
                 await self._process_message(data, writer)
@@ -410,9 +377,9 @@ class Server:
                 print("Max players reached.")
                 return
             
-            # if username in self._sessions.keys():
-            #     print("username taken.")
-            #     return
+            if username in self._sessions.keys():
+                print("username taken.")
+                return
 
             new_session = ClientSession(username, writer)
             self._sessions[username] = new_session
@@ -460,7 +427,10 @@ class Server:
         qtype = self._question_types[self._round_no - 1]
         short_question = self._generate_short_question(qtype)
         trivia_question = self._TRIVIA_QUESTION_FORMAT.format(
-            asdict(self.message_config)
+            question_word=self._question_word,
+            question_number=self._round_no,
+            question_type=qtype,
+            question=self._question_formats[qtype].replace("{}", short_question)
         )
         started_at = loop.time()
         finished_at = started_at + self._question_seconds
@@ -488,11 +458,11 @@ class Server:
 
 
     def _construct_ready_message(self) -> dict[str, Any]:
-        self._log("sending ready message")
         return {
             "message_type" : "READY",
             "info" : self._ready_info.format(
-                asdict(self.message_config)
+                question_interval_seconds=str(self._question_interval),
+                players=self._num_players
             )
         }
 
@@ -503,13 +473,12 @@ class Server:
         }
         if correct_answer is not None and correct_answer == answer:
             msg["correct"] = True
-            msg["feedback"] = self._correct_answer_message.format(
-                asdict(self.message_config)
-            )
+            msg["feedback"] = self._correct_answer_message.replace("{answer}", answer)
         else:
             msg["correct"] = False
             msg["feedback"] = self._incorrect_answer_message.format(
-                asdict(self.message_config)
+                correct_answer=correct_answer,
+                answer=answer
             )
 
         return msg
@@ -563,13 +532,9 @@ class Server:
                 if winner_point == sess.point:
                     temp += sess.username + ", "
             temp = temp[:-2]
-            str_ranking += self._multiple_winner_message.replace("{}", temp).format(
-                asdict(self.message_config)
-            )
+            str_ranking += self._multiple_winner_message.replace("{}", temp)
         else:
-            str_ranking += self._one_winner_message.replace("{}", ranking[0].username).format(
-                asdict(self.message_config)
-            )
+            str_ranking += self._one_winner_message.replace("{}", ranking[0].username)
 
         msg["final_standings"] = str_ranking 
         return msg
@@ -603,18 +568,11 @@ class Server:
             print(question_type)
             return ""
 
-def from_dict(data: dict[str, Any]) -> ServerMessageConfig:
-    allowed = {f.name for f in fields(ServerMessageConfig)}
-    clean = {k: v for k, v in data.items() if k in allowed}
-    # print(clean)
-    return ServerMessageConfig(**clean)
-
 
 def load_config(path: Path) -> Server:
     with Path.open(path, "r", encoding="utf-8") as f:
         cfg = json.load(f)
-    s = Server(**cfg, message_config=from_dict(cfg))
-    return s
+    return Server(**cfg)
 
 
 def parse_config_path() -> Path:
