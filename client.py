@@ -72,7 +72,10 @@ class Client:
             print("You are not connected yet. Cannot play.")
             return
         print(f"{self.username} is waiting for ready message...")
-        ready_msg = await receive_message(self.reader)
+        try:
+            ready_msg = await receive_message(self.reader)
+        except Exception as e:
+            print(f"{self.username} got {e}")
 
         if ready_msg is None:
             print(f"{self.username} ready message is not received. Trying to disconenct...")
