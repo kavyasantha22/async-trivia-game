@@ -406,9 +406,11 @@ class Server:
         }
         self._log("Ready message is halfway done!")
         # msg["info"] = ""
-        msg["info"] = self._ready_info.format(
-            asdict(self.config_message)
-        )
+        print(self._ready_info)
+        print(asdict(self.config_message))
+        # msg["info"] = self._ready_info.format(
+        #     asdict(self.config_message)
+        # )
         self._log("Ready message is being returned now!")
         return msg
 
