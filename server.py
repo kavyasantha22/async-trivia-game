@@ -488,6 +488,7 @@ class Server:
 
 
     def _construct_ready_message(self) -> dict[str, Any]:
+        self._log("sending ready message")
         return {
             "message_type" : "READY",
             "info" : self._ready_info.format(
