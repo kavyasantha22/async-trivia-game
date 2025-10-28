@@ -13,7 +13,15 @@ from answer import generate_answer
 import sys
 import json
 from pathlib import Path
+# import logging
+# import traceback
 import time
+
+# logging.basicConfig(
+#     level=logging.DEBUG,
+#     format="%(asctime)s %(levelname)s %(name)s: %(message)s",
+# )
+
 
 
 class ClientSession:
@@ -82,8 +90,10 @@ class Server:
         self._one_winner_message = one_winner
         self._multiple_winner_message = multiple_winners
 
-        self._join_cond: asyncio.Condition = asyncio.Condition()
-        self._answer_cond: asyncio.Condition | None = None
+        # self._reader, self._writer = await self.connect(port)
+        self._asyncio_server : asyncio.Server | None = None
+        self._orchestrator_task : asyncio.Task | None = None
+        self._cond: asyncio.Condition = asyncio.Condition()
         self._round_no = 0
         self._question_round: QuestionRound | None = None
         self._sessions : dict[str, ClientSession] = dict()
@@ -128,70 +138,103 @@ class Server:
 
     async def start(self) -> None:
         try:
-            server = await asyncio.start_server(self._handle_client, host=self._host, port=self._port)
+            self._asyncio_server = await asyncio.start_server(self._handle_client, host=self._host, port=self._port)
         except Exception as e:
             sys.stderr.write(f"server.py: Binding to port {self._port} was unsuccessful\n")
             sys.exit(1)
 
+        # addrs = ", ".join(str(s.getsockname()) for s in self._asyncio_server.sockets or [])
+        # print(addrs)
         socknames = ", ".join(str(s.getsockname()) for s in (self._asyncio_server.sockets or []))
         self._log(f"Listening on {socknames}")
 
-        async with server:
+        # self._orchestrator_task = asyncio.create_task(self._orchestrator())
+        # self._orchestrator_task.add_done_callback(
+        #     lambda t: t.exception()
+        # )
+
+        # try:
+        #     async with self._asyncio_server:
+        #         await self._asyncio_server.serve_forever()
+        # except Exception as e:
+        #     print(e)
+        # finally:
+        #     return
+        async with self._asyncio_server:
             await self._orchestrator()
 
+        # async with asyncio.TaskGroup() as tg:
+        #     tg.create_task(self._orchestrator())
+        #     tg.create_task(self._asyncio_server.serve_forever())
 
+
+    # double check
     async def _orchestrator(self): 
-        while True:
-            if self._state is GameState.WAITING_FOR_PLAYERS:
-                async with self._join_cond:
-                    await self._join_cond.wait_for(lambda: len(self._sessions) >= self._num_players)
+        question_round_start: float | None = None
 
-                self._log("Everyone has joined!")
-                ready_msg = self._construct_ready_message()
-                # question_round_start = cur_time + self._question_interval
-                await self._broadcast(ready_msg)
-                await asyncio.sleep(self._question_interval)
-                self._transition_state(GameState.QUESTION, "Starting first question round")
+        while True:
+            cur_time = asyncio.get_running_loop().time()
+            # print(question_round_start, cur_time)
+
+            if self._state is GameState.WAITING_FOR_PLAYERS:
+                async with self._cond:
+                    await self._cond.wait_for(lambda: len(self._sessions) >= self._num_players)
+                    ready_msg = self._construct_ready_message()
+                    # question_round_start = cur_time + self._question_interval
+                    await self._broadcast(ready_msg)
+                    await asyncio.sleep(self._question_interval)
+
+
+                # if len(self._sessions) >= self._num_players and question_round_start is not None and cur_time >= question_round_start:
+                #     self._round_no = 1
+                #     self._question_round = self._generate_question_round()
+                #     question_round_start = None
+                #     self._transition_state(GameState.QUESTION, "Starting first question round")
+                #     question_msg = self._construct_question_message()
+                #     await self._broadcast(question_msg)
+
+                # # ready messagen not sent
+                # elif len(self._sessions) >= self._num_players and question_round_start is None:
+                #     # print("Everyone has joined!")
+                #     ready_msg = self._construct_ready_message()
+                #     question_round_start = cur_time + self._question_interval
+                #     await self._broadcast(ready_msg)
 
             elif self._state is GameState.QUESTION:
-                self._answer_cond = asyncio.Condition()
-                self._round_no += 1
-                self._question_round = self._generate_question_round()
-                question_msg = self._construct_question_message()
-                await self._broadcast(question_msg)
-
-                try:
-                    # Deadline-based cancel that doesn't require making a separate task
-                    async with asyncio.timeout(self._question_round.finished_at - asyncio.get_running_loop().time()):
-                        async with self._answer_cond:
-                            await self._answer_cond.wait_for(
-                                lambda: self._question_round.has_everyone_answered(self._active_sessions)
-                            )
-
-                except asyncio.TimeoutError:  
-                    pass
-                
-                if self._round_no >= len(self._question_types):
-                    self._transition_state(GameState.FINISHED, "All question types completed")
+                if cur_time is None:
+                    print("Error time fetching from asyncio running loop")
                     continue
 
-                leaderboard_msg = self._construct_leaderboard_message()
-                await self._broadcast(leaderboard_msg)
+                if self._question_round.is_finished(self._active_sessions, cur_time):
+                    if self._round_no >= len(self._question_types):
+                        self._transition_state(GameState.FINISHED, "All question types completed")
+                    else:
+                        self._transition_state(GameState.BETWEEN_ROUNDS, "Round finished; sending leaderboard and waiting before next question")
+                        question_round_start = cur_time + self._question_interval 
+                        leaderboard_msg = self._construct_leaderboard_message()
+                        await self._broadcast(leaderboard_msg)
 
-                self._transition_state(GameState.BETWEEN_ROUNDS, "Round finished; sending leaderboard and waiting before next question")
-                self._answer_cond = None
-                await asyncio.sleep(self._question_interval)
+            elif self._state is GameState.BETWEEN_ROUNDS:
+                # Where to handle finished? shud we wait for the last interval before finishing or shud we go straight to finished after all qtypes are done?
+                if question_round_start is not None and cur_time >= question_round_start:
+                    question_round_start = None
+                    self._round_no += 1
 
-                self._transition_state(GameState.QUESTION, f"Starting round {self._round_no}")
+                    self._question_round = self._generate_question_round()
+                    self._transition_state(GameState.QUESTION, f"Starting round {self._round_no}")
+                    question_msg = self._construct_question_message()
+                    await self._broadcast(question_msg)
 
             elif self._state is GameState.FINISHED:
                 finished_msg = self._construct_finished_message()
                 await self._broadcast(finished_msg)
                 await self._shutdown_everything()
                 return
-            
+
             else:
                 pass
+
+            await asyncio.sleep(0.05)
 
 
     async def _shutdown_everything(self):
@@ -204,6 +247,24 @@ class Server:
                 await self._drop_session(sess.writer)
             except Exception:
                 pass
+
+        # if self._asyncio_server is not None:
+        #     self._asyncio_server.close()
+        #     try:
+        #         await self._asyncio_server.wait_closed()
+        #     except Exception:
+        #         pass
+
+        # if self._orchestrator_task is not None and not self._orchestrator_task.done():
+        #     self._orchestrator_task.cancel()
+        #     try:
+        #         await self._orchestrator_task
+        #     except asyncio.CancelledError:
+        #         pass
+        #     finally:
+        #         self._orchestrator_task = None
+        # return 
+
             
 
     def _get_correct_answer(self) -> str | None:
@@ -256,6 +317,36 @@ class Server:
             except Exception as e:
                 self._log(f"Process message error from {peer}: {e}")
                 break
+        # try:
+        #     while True:
+        #         if reader is None or writer is None:
+        #             # print("reader or writer is None!")
+        #             break
+        #         try:
+        #             data = await receive_message(reader)  
+        #             print(data) 
+        #         except Exception as e:
+        #             self._log(f"Receive error from {peer}: {e}")
+        #             break                                   
+        #         if data is None:
+        #             print("Data is none!")                            
+        #             break
+        #         try:
+        #             await self._process_message(data, writer)
+        #         except Exception as e:
+        #             self._log(f"Process message error from {peer}: {e}")
+        #             break
+
+        #         # If the session has been removed (e.g., BYE processed), stop reading
+        #         if self._find_session_by_writer(writer) is None:
+        #             break
+
+        # finally:
+        #     # print("Dropping because there is an exception or data is empty")
+        #     # Avoid double-dropping if session already removed
+        #     if self._find_session_by_writer(writer) is not None:
+        #         await self._drop_session(writer)
+            # print(f"[-] disconnected {peer}")
     
 
     async def _drop_session(self, writer : asyncio.StreamWriter) -> None:
@@ -292,25 +383,26 @@ class Server:
 
         if mtype == "HI":
             username = received["username"]
+            # print(f"{username} joined.")
 
-            async with self._join_cond:
-                if len(self._sessions.keys()) >= self._num_players:
-                    print("Max players reached.")
-                    return
-                new_session = ClientSession(username, writer)
-                self._sessions[username] = new_session
-                self._active_sessions.add(new_session)
-                if len(self._sessions) >= self._num_players:
-                    self._join_cond.notify_all()
+            if len(self._sessions.keys()) >= self._num_players:
+                print("Max players reached.")
+                return
+            
+            if username in self._sessions.keys():
+                print("username taken.")
+                return
 
+            new_session = ClientSession(username, writer)
+            self._sessions[username] = new_session
+            self._active_sessions.add(new_session)
             self._log(f"Session added: {username}. Active sessions: {len(self._active_sessions)}/{self._num_players}")
+            # ready_msg = self._construct_ready_message()
+            # await send_message(writer, ready_msg) 
 
         elif mtype == "BYE":
+            print("Dropping because of BYE message")
             await self._drop_session(writer)
-            if self._answer_cond:
-                async with self._answer_cond:
-                    if self._question_round and self._question_round.is_finished(self._active_sessions, asyncio.get_running_loop().time()):
-                        self._answer_cond.notify_all()
 
         elif mtype == "ANSWER":
             # Detailed answer logging
@@ -321,14 +413,10 @@ class Server:
 
             if self._state is GameState.QUESTION and self._question_round is not None:
                 sess = self._find_session_by_writer(writer)
-                if sess is not None and self._answer_cond:
+                if sess is not None:
                     self._question_round.answers_by_session[sess] = answer
                     if correct_answer is not None and correct_answer == answer:
                         sess.point += 1
-
-                    async with self._answer_cond:
-                        if self._question_round.is_finished(self._active_sessions, asyncio.get_running_loop().time()):
-                            self._answer_cond.notify_all()
 
 
             result_msg = self._construct_result_message(answer, correct_answer)
@@ -360,10 +448,13 @@ class Server:
         finished_at = started_at + self._question_seconds
         correct_answer = generate_answer(qtype, short_question)
 
-
-        self._log(
-            f"Round generated: round={self._round_no} type={qtype} users={len(self._active_sessions)} time_limit={self._question_seconds} correct='{correct_answer}'"
-        )
+        # print("Nearly finished generating question round...")
+        try:
+            self._log(
+                f"Round generated: round={self._round_no} type={qtype} users={len(self._active_sessions)} time_limit={self._question_seconds} correct='{correct_answer}'"
+            )
+        except Exception:
+            pass
 
         return QuestionRound(
             round_no=self._round_no,
@@ -514,11 +605,13 @@ def parse_config_path() -> Path:
 async def main():
     config_path = parse_config_path()
     server = load_config(config_path)
+    # asyncio.get_running_loop().set_debug(True)
 
     await server.start()
     
 
 if __name__ == "__main__":
     asyncio.run(main())
+    # asyncio.run(main(),debug=True)
     
         
