@@ -153,6 +153,7 @@ class Server:
                 self._log("Sending ready message...")
                 # question_round_start = cur_time + self._question_interval
                 await self._broadcast(ready_msg)
+                print("Finished sending ready message!")
                 await asyncio.sleep(self._question_interval)
                 self._transition_state(GameState.QUESTION, "Starting first question round")
 
