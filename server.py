@@ -314,7 +314,7 @@ class Server:
                 self._log(f"Receive error from {peer}: {e}")
                 break                                   
             if data is None:
-                print(f"{self._find_session_by_writer(writer)} is none!")                            
+                print(f"{self._find_session_by_writer(writer).username} is none!")                            
                 break
             try:
                 await self._process_message(data, writer)
