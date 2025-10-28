@@ -203,6 +203,7 @@ class Server:
                     # print("Everyone has joined!")
                     ready_msg = self._construct_ready_message()
                     question_round_start = cur_time + self._question_interval
+                    print("it goes to the right branch")
                     await self._broadcast(ready_msg)
 
             elif self._state is GameState.QUESTION:
