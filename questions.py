@@ -1,7 +1,7 @@
 import random
 
 def generate_mathematics_question():
-    OPERANDS_RANGE = [1, 1000]
+    OPERANDS_RANGE = [1, 100]
     OPERATORS = ["+", "-"]
     operands = random.randint(2, 5)
     ret = ""
@@ -57,6 +57,12 @@ def generate_usable_addresses_question():
 
 def generate_network_broadcast_question():
     return _generate_ip_cidr()
+
+
+# for _ in range(10):
+#     s = generate_mathematics_question()
+
+#     print(repr(s))
 
     
 
