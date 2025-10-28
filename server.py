@@ -409,7 +409,7 @@ class Server:
         # print(self._ready_info)
         # print(asdict(self.config_message))
         msg["info"] = self._ready_info.format(
-            asdict(self.config_message)
+            **asdict(self.config_message)
         )
         self._log("Ready message is being returned now!")
         return msg
@@ -422,12 +422,12 @@ class Server:
         if correct_answer is not None and correct_answer == answer:
             msg["correct"] = True
             msg["feedback"] = self._correct_answer_message.format(
-                asdict(self.config_message)
+                **asdict(self.config_message)
             )
         else:
             msg["correct"] = False
             msg["feedback"] = self._incorrect_answer_message.format(
-                asdict(self.config_message)
+                **asdict(self.config_message)
             )
 
         return msg
