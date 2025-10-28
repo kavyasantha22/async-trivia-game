@@ -386,10 +386,11 @@ class Server:
             "message_type" : "READY"
         }
         self._log("Ready message is halfway done!")
-        msg["info"] = self._ready_info.format(
-            question_interval_seconds=self._question_interval,
-            players=self._num_players
-        )
+        msg["info"] = ""
+        # msg["info"] = self._ready_info.format(
+        #     question_interval_seconds=self._question_interval,
+        #     players=self._num_players
+        # )
         self._log("Ready message is being returned now!")
         return msg
 
