@@ -5,7 +5,6 @@ from helper import send_message, receive_message
 from answer import generate_answer
 import asyncio
 from typing import Any, Optional
-from timeouts import time_limit, TimeLimitError
 import requests
 
 
