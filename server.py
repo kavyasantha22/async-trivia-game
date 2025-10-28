@@ -338,8 +338,6 @@ class Server:
             self._log(f"Send -> {to_uname} | {self._summarize_message(result_msg)} answer='{answer}' correct_answer='{correct_answer}'")
             await send_message(writer, result_msg)
 
-        
-
     
     def _find_session_by_writer(self, writer : asyncio.StreamWriter) -> ClientSession | None:
         for ses in self._active_sessions:

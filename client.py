@@ -44,7 +44,7 @@ class Client:
 
 
     async def _connect(self, hostname: str, port: str) -> None:
-        print("Trying to connect...")
+        # print("Trying to connect...")
         self.reader, self.writer = await asyncio.open_connection(hostname, int(port))
         # peer = self.writer.get_extra_info("peername")
         # print(f"Connected to {peer}")
@@ -54,7 +54,7 @@ class Client:
 
 
     async def _disconnect(self) -> bool:
-        print("Trying to disconnect...")
+        # print("Trying to disconnect...")
         if self.writer is None:
             return True
         try:
@@ -71,11 +71,11 @@ class Client:
         if self.reader is None or self.writer is None:
             print("You are not connected yet. Cannot play.")
             return
-        print(f"{self.username} is waiting for ready message...")
+        # print(f"{self.username} is waiting for ready message...")
         ready_msg = await receive_message(self.reader)
 
         if ready_msg is None:
-            print(f"{self.username} is waiting for ready message...")
+            # print(f"{self.username} is waiting for ready message...")
             await self._disconnect()
             return
         
