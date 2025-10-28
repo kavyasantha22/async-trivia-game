@@ -407,7 +407,7 @@ class Server:
         self._log("Ready message is halfway done!")
         # msg["info"] = ""
         print(self._ready_info)
-        # print(asdict(self.config_message))
+        print(asdict(self.config_message))
         # msg["info"] = self._ready_info.format(
         #     asdict(self.config_message)
         # )
