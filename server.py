@@ -375,10 +375,7 @@ class Server:
             question_word=self._question_word,
             question_number=self._round_no,
             question_type=qtype,
-            question=self._question_formats[qtype].format(
-                short_question,
-                **ascdict()
-            )
+            question=self._question_formats[qtype].replace("{}", short_question)
         )
         started_at = loop.time()
         finished_at = started_at + self._question_seconds
