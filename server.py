@@ -381,13 +381,17 @@ class Server:
 
 
     def _construct_ready_message(self) -> dict[str, Any]:
-        return {
-            "message_type" : "READY",
-            "info" : self._ready_info.format(
-                question_interval_seconds=self._question_interval,
-                players=self._num_players
-            )
+        self._log("Constructing ready message!")
+        msg = {
+            "message_type" : "READY"
         }
+        self._log("Ready message is halfway done!")
+        msg["info"] = self._ready_info.format(
+            question_interval_seconds=self._question_interval,
+            players=self._num_players
+        )
+        self._log("Ready message is being returned now!")
+        return msg
 
 
     def _construct_result_message(self, answer, correct_answer) -> dict[str, Any]:
