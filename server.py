@@ -316,6 +316,7 @@ class Server:
                 self._log(f"Receive error from {peer}: {e}")
                 break                                   
             if data is None:
+                self._log(f"is disconnected? {reader.at_eof()}")
                 self._log(f"{self._find_session_by_writer(writer).username} is none!")                            
                 break
             try:
