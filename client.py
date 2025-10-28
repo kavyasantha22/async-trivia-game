@@ -74,6 +74,7 @@ class Client:
         ready_msg = await receive_message(self.reader)
 
         if ready_msg is None:
+            await self._disconnect()
             return
         
         if ready_msg['message_type'] == "READY":
@@ -109,17 +110,6 @@ class Client:
                 break
             else:
                 print("Not recognised message type")
-
-    
-    async def is_command(self, inp):
-        match (inp):
-            case "EXIT":
-                await self.request_shutdown()
-                return True
-            case "DISCONNECT":
-                return True
-            case _:
-                return False
             
  
     async def _answer_question(self, question, qtimeout: float | int) -> None:
@@ -277,10 +267,12 @@ def parse_config_path() -> Path:
         sys.exit(1)
     return config_path
 
+
 async def bfunc(client: Client):
     while not client.is_shutting_down():
         await client.prompt_connect()
         await client.play()
+
 
 async def main():
     config_path = parse_config_path()
