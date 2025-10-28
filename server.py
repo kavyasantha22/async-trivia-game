@@ -326,7 +326,7 @@ class Server:
                 if len(self._sessions) >= self._num_players:
                     self._join_cond.notify_all()
 
-            self._log(f"Session added: {username}. Active sessions: {len(self._active_sessions)}/{self._num_players}")
+            self._log(f"Session added: {username}. Sessions: {len(self._sessions)}/{self._num_players}")
 
         elif mtype == "BYE":
             await self._drop_session(writer)

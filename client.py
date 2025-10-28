@@ -95,6 +95,7 @@ class Client:
     async def _recv_message_loop(self):
         while self.connected and not self.is_shutting_down():
             msg = await receive_message(self.reader)
+            # print(repr(msg))
             if not msg:
                 break
             t = msg.get("message_type")
@@ -253,6 +254,7 @@ async def install_stdin_reader(client: Client) -> None:
         elif line == "DISCONNECT":
             await client._disconnect()
         else:
+            # print(repr(line))
             await _STDIN_Q.put(line)
     
 
