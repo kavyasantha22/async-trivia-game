@@ -421,14 +421,14 @@ class Server:
         msg: dict[str, Any] = {
             "message_type": "RESULT"
         }
-        current_config_message = asdict(self.config_message).copy()
+        current_config_message: dict[str, Any] = asdict(self.config_message).copy()
         current_config_message.pop("correct_answer", None)
         if generated_answer is not None and generated_answer == user_answer:
             msg["correct"] = True
             try:
                 msg["feedback"] = self._correct_answer_message.format(
                     answer=user_answer,
-                    correct_answer=generated_answer
+                    correct_answer=generated_answer,
                     **current_config_message
                 )
             except Exception as exc:
@@ -439,7 +439,7 @@ class Server:
             try:
                 msg["feedback"] = self._incorrect_answer_message.format(
                     answer=user_answer,
-                    correct_answer=generated_answer
+                    correct_answer=generated_answer,
                     **current_config_message
                 )
             except Exception as exc:
