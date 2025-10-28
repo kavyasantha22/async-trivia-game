@@ -200,10 +200,10 @@ class Server:
 
                 # ready messagen not sent
                 elif len(self._sessions) >= self._num_players and question_round_start is None:
-                    # print("Everyone has joined!")
+                    self._log("Everyone has joined!")
                     ready_msg = self._construct_ready_message()
                     question_round_start = cur_time + self._question_interval
-                    print("it goes to the right branch")
+                    # print("it goes to the right branch")
                     await self._broadcast(ready_msg)
 
             elif self._state is GameState.QUESTION:
