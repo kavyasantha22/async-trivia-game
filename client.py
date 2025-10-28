@@ -44,7 +44,7 @@ class Client:
 
 
     async def _connect(self, hostname: str, port: str) -> None:
-        # print("Trying to connect...")
+        print("Trying to connect...")
         self.reader, self.writer = await asyncio.open_connection(hostname, int(port))
         msg = self._construct_hi_message()
         await send_message(self.writer, msg)
@@ -69,7 +69,7 @@ class Client:
         if self.reader is None or self.writer is None:
             print("You are not connected yet. Cannot play.")
             return
-        # print(f"{self.username} is waiting for ready message...")
+        print(f"{self.username} is waiting for ready message...")
         try:
             ready_msg = await receive_message(self.reader)
         except Exception as e:
