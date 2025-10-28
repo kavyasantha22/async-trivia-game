@@ -405,9 +405,14 @@ class Server:
             "message_type" : "READY"
         }
         self._log("Ready message is halfway done!")
-        msg["info"] = self._ready_info.format(
-            **asdict(self.config_message)
-        )
+        try:
+            ready_text = self._ready_info.format(
+                **asdict(self.config_message)
+            )
+        except Exception as exc:
+            self._log(f"Ready message formatting failed: {exc}")
+            ready_text = self._ready_info
+        msg["info"] = ready_text
         self._log("Ready message is being returned now!")
         return msg
 
@@ -418,14 +423,22 @@ class Server:
         }
         if correct_answer is not None and correct_answer == answer:
             msg["correct"] = True
-            msg["feedback"] = self._correct_answer_message.format(
-                **asdict(self.config_message)
-            )
+            try:
+                msg["feedback"] = self._correct_answer_message.format(
+                    **asdict(self.config_message)
+                )
+            except Exception as exc:
+                self._log(f"Correct answer feedback formatting failed: {exc}")
+                msg["feedback"] = self._correct_answer_message
         else:
             msg["correct"] = False
-            msg["feedback"] = self._incorrect_answer_message.format(
-                **asdict(self.config_message)
-            )
+            try:
+                msg["feedback"] = self._incorrect_answer_message.format(
+                    **asdict(self.config_message)
+                )
+            except Exception as exc:
+                self._log(f"Incorrect answer feedback formatting failed: {exc}")
+                msg["feedback"] = self._incorrect_answer_message
 
         return msg
     
@@ -467,9 +480,15 @@ class Server:
         ranking = sorted(self._sessions.values(),
                 key=lambda session: (-1*session.point, session.username))
         
-        str_ranking = f"{self._final_standings_heading.format(
-            **asdict(self.config_message)
-        )}\n"
+        try:
+            standings_heading = self._final_standings_heading.format(
+                **asdict(self.config_message)
+            )
+        except Exception as exc:
+            self._log(f"Final standings heading formatting failed: {exc}")
+            standings_heading = self._final_standings_heading
+
+        str_ranking = f"{standings_heading}\n"
 
         str_ranking += self._construct_leaderboard_message()["state"] + '\n'
 
@@ -480,15 +499,23 @@ class Server:
                 if winner_point == sess.point:
                     temp += sess.username + ", "
             temp = temp[:-2]
-            str_ranking += self._multiple_winner_message.format(
-                temp,
-                **asdict(self.config_message)
-            )
+            try:
+                str_ranking += self._multiple_winner_message.format(
+                    temp,
+                    **asdict(self.config_message)
+                )
+            except Exception as exc:
+                self._log(f"Multiple winners message formatting failed: {exc}")
+                str_ranking += self._multiple_winner_message
         else:
-            str_ranking += self._one_winner_message.format(
-                ranking[0].username,
-                **asdict(self.config_message)
-            )
+            try:
+                str_ranking += self._one_winner_message.format(
+                    ranking[0].username,
+                    **asdict(self.config_message)
+                )
+            except Exception as exc:
+                self._log(f"One winner message formatting failed: {exc}")
+                str_ranking += self._one_winner_message
 
         msg["final_standings"] = str_ranking 
         return msg
