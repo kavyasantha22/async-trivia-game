@@ -108,12 +108,16 @@ def _convert_to_ip(num):
 
 def _generate_network_broadcast_answer(short_question):
     network, broadcast = _generate_network_broadcast(short_question)
-    # print("returning...")
-    # return "EXIT"
     return str(_convert_to_ip(network)) + " and " + str(_convert_to_ip(broadcast))
     
 
 def _generate_usable_ipv4_answer(short_question):
+    _, cidr = _parse_ip_cidr(short_question)
+    cidr = max(0, min(32, cidr))
+
+    if cidr >= 31:
+        return "0"
+      
     network, broadcast = _generate_network_broadcast(short_question)
 
     return str(broadcast - network + 1 - 2)

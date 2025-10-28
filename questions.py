@@ -41,7 +41,7 @@ def generate_roman_numerals_question():
 
 def _generate_ip_cidr():
     BIT_RANGE = [0, 255]
-    HOST_BITS_RANGE = [1, 30]
+    HOST_BITS_RANGE = [0, 32]
 
     ip = [str(random.randint(*BIT_RANGE)) for _ in range(4)]
     
