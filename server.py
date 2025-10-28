@@ -444,7 +444,6 @@ class Server:
                 )
             except Exception as exc:
                 self._log(f"Incorrect answer feedback formatting failed: {exc}")
-                print()
                 msg["feedback"] = self._incorrect_answer_message
 
         return msg
