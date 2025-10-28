@@ -216,7 +216,7 @@ class Server:
                 elif len(self._sessions) >= self._num_players and question_round_start is None:
                     self._log("Everyone has joined!")
                     ready_msg = self._construct_ready_message()
-                    self._log("Everyone has joined!")
+                    self._log("ready message is sent.")
                     question_round_start = cur_time + self._question_interval
                     # print("it goes to the right branch")
                     await self._broadcast(ready_msg)
