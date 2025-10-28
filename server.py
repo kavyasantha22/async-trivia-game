@@ -136,25 +136,25 @@ class Server:
 
 
     async def start(self) -> None:
-        config_snapshot = {
-            "host": self._host,
-            "port": self._port,
-            "players": self._num_players,
-            "question_types": self._question_types,
-            "question_formats": self._question_formats,
-            "question_seconds": self._question_seconds,
-            "question_interval_seconds": self._question_interval,
-            "ready_info": self._ready_info,
-            "question_word": self._question_word,
-            "correct_answer_message": self._correct_answer_message,
-            "incorrect_answer_message": self._incorrect_answer_message,
-            "points_noun_singular": self._points_noun_singular,
-            "points_noun_plural": self._points_noun_plural,
-            "final_standings_heading": self._final_standings_heading,
-            "one_winner_message": self._one_winner_message,
-            "multiple_winner_message": self._multiple_winner_message,
-        }
-        self._log("Configuration:\n" + json.dumps(config_snapshot, indent=2))
+        # config_snapshot = {
+        #     "host": self._host,
+        #     "port": self._port,
+        #     "players": self._num_players,
+        #     "question_types": self._question_types,
+        #     "question_formats": self._question_formats,
+        #     "question_seconds": self._question_seconds,
+        #     "question_interval_seconds": self._question_interval,
+        #     "ready_info": self._ready_info,
+        #     "question_word": self._question_word,
+        #     "correct_answer_message": self._correct_answer_message,
+        #     "incorrect_answer_message": self._incorrect_answer_message,
+        #     "points_noun_singular": self._points_noun_singular,
+        #     "points_noun_plural": self._points_noun_plural,
+        #     "final_standings_heading": self._final_standings_heading,
+        #     "one_winner_message": self._one_winner_message,
+        #     "multiple_winner_message": self._multiple_winner_message,
+        # }
+        # self._log("Configuration:\n" + json.dumps(config_snapshot, indent=2))
 
         try:
             self._asyncio_server = await asyncio.start_server(self._handle_client, host=self._host, port=self._port)
