@@ -24,7 +24,7 @@ import time
 
 @dataclass
 class ServerMessageConfig:
-    host: str
+    # host: str
     port: int
     players: int
     # question_types: list[str]
@@ -611,13 +611,14 @@ class Server:
 def from_dict(data: dict[str, Any]) -> ServerMessageConfig:
     allowed = {f.name for f in fields(ServerMessageConfig)}
     clean = {k: v for k, v in data.items() if k in allowed}
+    # print(clean)
     return ServerMessageConfig(**clean)
 
 
 def load_config(path: Path) -> Server:
     with Path.open(path, "r", encoding="utf-8") as f:
         cfg = json.load(f)
-    s = Server(**cfg, message_config=from_dict(**cfg))
+    s = Server(**cfg, message_config=from_dict(cfg))
     return s
 
 
