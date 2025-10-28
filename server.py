@@ -426,8 +426,8 @@ class Server:
             try:
                 msg["feedback"] = self._correct_answer_message.format(
                     answer=answer,
-                    correct_answer=correct_answer,
-                    **asdict(self.config_message)
+                    correct_answer=correct_answer
+                    # **asdict(self.config_message)
                 )
             except Exception as exc:
                 self._log(f"Correct answer feedback formatting failed: {exc}")
@@ -437,8 +437,8 @@ class Server:
             try:
                 msg["feedback"] = self._incorrect_answer_message.format(
                     answer=answer,
-                    correct_answer=correct_answer,
-                    **asdict(self.config_message)
+                    correct_answer=correct_answer
+                    # **asdict(self.config_message)
                 )
             except Exception as exc:
                 self._log(f"Incorrect answer feedback formatting failed: {exc}")
