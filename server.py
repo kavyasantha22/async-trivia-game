@@ -150,6 +150,7 @@ class Server:
 
                 self._log("Everyone has joined!")
                 ready_msg = self._construct_ready_message()
+                self._log("Sending ready message...")
                 # question_round_start = cur_time + self._question_interval
                 await self._broadcast(ready_msg)
                 await asyncio.sleep(self._question_interval)

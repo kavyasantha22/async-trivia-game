@@ -69,7 +69,7 @@ class Client:
 
     async def play(self) -> None:
         if self.reader is None or self.writer is None:
-            print("You are not connected yet. Cannot play.")
+            # print("You are not connected yet. Cannot play.")
             return
         # print(f"{self.username} is waiting for ready message...")
         ready_msg = await receive_message(self.reader)
