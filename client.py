@@ -53,7 +53,7 @@ class Client:
 
 
     async def _disconnect(self) -> bool:
-        # print("Trying to disconnect...")
+        print("Trying to disconnect...")
         if self.writer is None:
             return True
         try:
