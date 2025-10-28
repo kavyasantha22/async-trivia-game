@@ -50,7 +50,7 @@ class Client:
         # print(f"Connected to {peer}")
         msg = self._construct_hi_message()
         await send_message(self.writer, msg)
-        print("HI message is sent!")
+        # print("HI message is sent!")
         self.connected = True
 
 
