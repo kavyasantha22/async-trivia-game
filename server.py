@@ -13,30 +13,24 @@ from answer import generate_answer
 import sys
 import json
 from pathlib import Path
-# import logging
-# import traceback
+
 import time
 
-# logging.basicConfig(
-#     level=logging.DEBUG,
-#     format="%(asctime)s %(levelname)s %(name)s: %(message)s",
-# )
 
 @dataclass
 class ServerMessageConfig:
-    # host: str
     port: int
     players: int
-    # question_types: list[str]
-    # question_formats: dict[str, str]
+    question_types: list[str]
+    question_formats: dict[str, str]
     question_seconds: int
     question_interval_seconds: float
     ready_info: str
-    # question_word: str
+    question_word: str
     correct_answer: str
     incorrect_answer: str
-    # points_noun_singular: str
-    # points_noun_plural: str
+    points_noun_singular: str
+    points_noun_plural: str
     final_standings_heading: str
     one_winner: str
     multiple_winners: str
