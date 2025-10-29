@@ -200,7 +200,7 @@ class Client:
         
         self._shutdown_event.set()
         await self._disconnect()
-        
+                
         # print("disconnected.")
         asyncio.gather(
             cancel_task(self._answer_task),
@@ -220,13 +220,11 @@ class Client:
             line = (await asyncio.to_thread(sys.stdin.readline)).strip()    
             if line == "EXIT":
                 await self.request_shutdown()
-                # print("returning...")
                 return 
             elif line == "DISCONNECT":
                 await self._disconnect()
             else:
                 await INPUT_QUEUE.put(line)
-    
 
 
 async def cancel_task(task: Optional[asyncio.Task]) -> None:
