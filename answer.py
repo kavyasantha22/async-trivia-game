@@ -115,7 +115,9 @@ def _generate_usable_ipv4_answer(short_question):
     _, cidr = _parse_ip_cidr(short_question)
     cidr = max(0, min(32, cidr))
 
-    if cidr >= 31:
+    if cidr == 31:
+        return "1"
+    elif cidr == 32:
         return "0"
       
     network, broadcast = _generate_network_broadcast(short_question)
