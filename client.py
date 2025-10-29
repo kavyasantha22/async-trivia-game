@@ -253,7 +253,8 @@ async def cancel_task(task: Optional[asyncio.Task]) -> None:
     except asyncio.CancelledError:
         pass
     except Exception as e:
-        print(e)
+        pass
+        # print(e)
 
 
 def parse_config_path() -> Path:        
