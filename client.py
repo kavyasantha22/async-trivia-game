@@ -189,23 +189,26 @@ class Client:
 
     async def prompt_connect(self) -> bool:
         if self.is_shutting_down():     
-            return
+            return False
         
         inp = await _STDIN_Q.get()
 
         if inp is None:
             if self.is_shutting_down(): 
-                return
-
-        inp = inp.split()
-        if inp[0] != "CONNECT":
-            print("Unrecognised command.")
+                return False
+        try:
+            if inp[0] != "CONNECT":
+                print("Unrecognised command.")
+        except Exception:
+            return False
+        
         try:
             hostname, port = inp[1].split(":")
             await self._connect(hostname, port)
             return True
         except Exception:
             print(f"Connection failed")
+
         return False
 
 
@@ -272,9 +275,8 @@ def parse_config_path() -> Path:
 
 async def bfunc(client: Client):
     while not client.is_shutting_down():
-        if not await client.prompt_connect():
-            return
-        await client.play()
+        if client.prompt_connect():
+            await client.play()
 
 
 async def main():
