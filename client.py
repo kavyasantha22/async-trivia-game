@@ -77,13 +77,13 @@ class Client:
     
 
     async def run_loop(self) -> None:
-        while True:
+        while not self.is_shutting_down():
             await self.connect()
             await self.play()
 
 
     async def play(self) -> None:
-        if self.reader is None or self.writer is None:
+        if self.reader is None or self.writer is None or self.is_shutting_down():
             return
 
         ready_msg = await receive_message(self.reader)
@@ -194,6 +194,23 @@ class Client:
             return None
 
 
+    async def request_shutdown(self) -> None:
+        if self._shutdown_event.is_set():
+            return
+        
+        self._shutdown_event.set()
+        await self._disconnect()
+        
+        # print("disconnected.")
+        asyncio.gather(
+            cancel_task(self._answer_task),
+            cancel_task(self._recv_loop_task)
+        )
+        # print("tasks canceled.")
+        self._answer_task = None 
+        self._recv_loop_task = None
+
+
     def is_shutting_down(self):
         return self._shutdown_event.is_set()
     
@@ -202,13 +219,15 @@ class Client:
         while True:
             line = (await asyncio.to_thread(sys.stdin.readline)).strip()    
             if line == "EXIT":
-                break 
+                await self.request_shutdown()
+                # print("returning...")
+                return 
             elif line == "DISCONNECT":
-                self._shutdown_event.set()
                 await self._disconnect()
             else:
                 await INPUT_QUEUE.put(line)
     
+
 
 async def cancel_task(task: Optional[asyncio.Task]) -> None:
     if not task:
