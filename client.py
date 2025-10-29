@@ -95,6 +95,8 @@ class Client:
     
     async def _recv_message_loop(self):
         while self.connected and not self.is_shutting_down():
+            if not self.reader:
+                await self._disconnect()
             msg = await receive_message(self.reader)
             # print(repr(msg))
             if not msg:
@@ -295,7 +297,6 @@ async def main():
     await asyncio.wait([a,b],return_when=asyncio.FIRST_COMPLETED)
     
     sys.exit(0)
-
 
 
 if __name__ == "__main__":
