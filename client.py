@@ -97,6 +97,7 @@ class Client:
         while self.connected and not self.is_shutting_down():
             if not self.reader:
                 await self._disconnect()
+                continue
             msg = await receive_message(self.reader)
             # print(repr(msg))
             if not msg:
