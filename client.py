@@ -90,10 +90,6 @@ class Client:
         except (ConnectionResetError, ConnectionError):
             await self._disconnect()
             return
-
-        if ready_msg is None:
-            await self._disconnect()
-            return
         
         if ready_msg['message_type'] == "READY":
             print(ready_msg['info'])
@@ -110,9 +106,11 @@ class Client:
             if not self.reader:
                 await self._disconnect()
                 break
-            msg = await receive_message(self.reader)
-            if not msg:
-                break
+            try:
+                msg = await receive_message(self.reader)
+            except ConnectionError:
+                await self._disconnect()
+                continue
             t = msg.get("message_type")
             if t == "READY":
                 print(msg["info"])

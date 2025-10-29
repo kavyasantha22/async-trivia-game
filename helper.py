@@ -15,9 +15,9 @@ async def send_message(writer: asyncio.StreamWriter, message: dict):
     await writer.drain()
 
 
-async def receive_message(reader: asyncio.StreamReader) -> dict | None:
+async def receive_message(reader: asyncio.StreamReader) -> dict:
     line = await reader.readline()      
     if not line:
-        return None
+        raise ConnectionError("Disconnected")
     decoded = decode_message(line)  
     return decoded
