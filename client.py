@@ -73,11 +73,8 @@ class Client:
         
         self.connected = False 
         return True
-        # self.connected = False
-        # self.reader, self.writer = None, None
         
     
-
     async def run_loop(self) -> None:
         while not self.is_shutting_down():
             await self.connect()
@@ -128,6 +125,7 @@ class Client:
                 print(msg["state"])
             elif t == "FINISHED":
                 print(msg["final_standings"])
+                await self._disconnect()
                 self.connected = False  
                 break
             
@@ -135,9 +133,6 @@ class Client:
     async def _answer_question(self, question, qtimeout: float | int) -> None:
         if self.is_shutting_down() or not self.writer: 
             return
-        
-        if not self.writer:
-            return 
         
         answer = {
             "message_type": "ANSWER"
