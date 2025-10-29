@@ -82,26 +82,25 @@ class Client:
 
 
     async def play(self) -> None:
-        try:
-            if self.reader is None or self.writer is None or self.is_shutting_down():
-                return
+        if self.reader is None or self.writer is None or self.is_shutting_down():
+            return
 
-            try:
-                ready_msg = await receive_message(self.reader)
-            except (ConnectionError, OSError, json.JSONDecodeError):
-                await self._disconnect()
-                return
-            
-            if ready_msg['message_type'] == "READY":
-                print(ready_msg['info'])
 
-            self._recv_loop_task = asyncio.create_task(self._recv_message_loop())
-            try:
-                await self._recv_loop_task
-            except asyncio.CancelledError:
-                pass
-        finally:
+        ready_msg = await receive_message(self.reader)
+        
+        if not ready_msg:
             await self._disconnect()
+            return
+
+        
+        if ready_msg['message_type'] == "READY":
+            print(ready_msg['info'])
+
+        self._recv_loop_task = asyncio.create_task(self._recv_message_loop())
+        try:
+            await self._recv_loop_task
+        except asyncio.CancelledError:
+            pass
 
     
     async def _recv_message_loop(self):
@@ -109,11 +108,12 @@ class Client:
             if not self.reader:
                 await self._disconnect()
                 break
-            try:
-                msg = await receive_message(self.reader)
-            except (ConnectionError, OSError):
+            msg = await receive_message(self.reader)
+
+            if not msg:
                 await self._disconnect()
-                continue
+                return
+
             t = msg.get("message_type")
             if t == "READY":
                 print(msg["info"])
