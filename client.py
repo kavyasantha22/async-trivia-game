@@ -71,7 +71,15 @@ class Client:
         except Exception:
             pass  # connection may already be gone
         
-        self.connected = False 
+        try:
+            self.writer.close()
+            await self.writer.wait_closed()
+        except Exception:
+            pass
+        
+        self.reader = None
+        self.writer = None
+        self.connected = False
         return True
         
     
