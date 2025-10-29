@@ -57,6 +57,8 @@ class Client:
                 except ConnectionRefusedError:
                     print(f"Connection failed")
                     continue 
+                except (OSError):
+                    continue
                 msg = self._construct_hi_message()
                 await send_message(self.writer, msg)
                 self.connected = True
