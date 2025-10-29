@@ -194,21 +194,6 @@ class Client:
             return None
 
 
-    # async def request_shutdown(self) -> None:
-    #     if self._shutdown_event.is_set():
-    #         return
-        
-    #     self._shutdown_event.set()
-    #     await self._disconnect()
-
-    #     asyncio.gather(
-    #         cancel_task(self._answer_task),
-    #         cancel_task(self._recv_loop_task)
-    #     )
-    #     self._answer_task = None 
-    #     self._recv_loop_task = None
-
-
     def is_shutting_down(self):
         return self._shutdown_event.is_set()
     
@@ -224,7 +209,6 @@ class Client:
             else:
                 await INPUT_QUEUE.put(line)
     
-
 
 async def cancel_task(task: Optional[asyncio.Task]) -> None:
     if not task:
