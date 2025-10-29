@@ -76,7 +76,6 @@ class Client:
         # self.connected = False
         # self.reader, self.writer = None, None
         
-    
 
     async def run_loop(self) -> None:
         while not self.is_shutting_down():
@@ -90,6 +89,9 @@ class Client:
 
         ready_msg = await receive_message(self.reader)
 
+        if ready_msg is None:
+            await self._disconnect()
+            return
         
         if ready_msg['message_type'] == "READY":
             print(ready_msg['info'])
