@@ -6,7 +6,6 @@ from answer import generate_answer
 import asyncio
 from typing import Any, Optional
 import requests
-import re
 
 
 class Client:
@@ -95,9 +94,6 @@ class Client:
     
     async def _recv_message_loop(self):
         while self.connected and not self.is_shutting_down():
-            if not self.reader:
-                await self._disconnect()
-                break
             msg = await receive_message(self.reader)
             # print(repr(msg))
             if not msg:
@@ -191,25 +187,26 @@ class Client:
             return None
 
 
-    async def prompt_connect(self) -> None:
-        while True:
-            if self.is_shutting_down():     
-                return 
-            
-            inp = await _STDIN_Q.get()
-
-            if inp is None:
-                if self.is_shutting_down(): 
-                    return 
-                
-            if re.match(r"^CONNECT\s+\S+:\d+$", inp):
-                hostname, port = inp.split()[1].split(":")
-                try:
-                    await self._connect(hostname, port)
-                    return
-                except Exception:
-                    print(f"Connection failed")
+    async def prompt_connect(self) -> bool:
+        if self.is_shutting_down():     
+            return
         
+        inp = await _STDIN_Q.get()
+
+        if inp is None:
+            if self.is_shutting_down(): 
+                return
+
+        inp = inp.split()
+        if inp[0] != "CONNECT":
+            print("Unrecognised command.")
+        try:
+            hostname, port = inp[1].split(":")
+            await self._connect(hostname, port)
+            return True
+        except Exception:
+            print(f"Connection failed")
+        return False
 
 
     async def request_shutdown(self) -> None:
@@ -275,7 +272,8 @@ def parse_config_path() -> Path:
 
 async def bfunc(client: Client):
     while not client.is_shutting_down():
-        await client.prompt_connect()
+        if not await client.prompt_connect():
+            return
         await client.play()
 
 
@@ -298,6 +296,7 @@ async def main():
     await asyncio.wait([a,b],return_when=asyncio.FIRST_COMPLETED)
     
     sys.exit(0)
+
 
 
 if __name__ == "__main__":
