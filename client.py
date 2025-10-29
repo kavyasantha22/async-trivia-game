@@ -187,7 +187,7 @@ class Client:
             return None
 
 
-    async def prompt_connect(self) -> Bool:
+    async def prompt_connect(self) -> bool:
         if self.is_shutting_down():     
             return
         
