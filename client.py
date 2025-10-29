@@ -54,7 +54,7 @@ class Client:
                 hostname, port = inp.split()[1].split(":")
                 try:
                     self.reader, self.writer = await asyncio.open_connection(hostname, int(port))
-                except Exception:
+                except ConnectionRefusedError:
                     print(f"Connection failed")
                     continue 
                 msg = self._construct_hi_message()
