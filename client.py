@@ -82,23 +82,26 @@ class Client:
 
 
     async def play(self) -> None:
-        if self.reader is None or self.writer is None or self.is_shutting_down():
-            return
-
         try:
-            ready_msg = await receive_message(self.reader)
-        except (ConnectionResetError, ConnectionError, OSError):
+            if self.reader is None or self.writer is None or self.is_shutting_down():
+                return
+
+            try:
+                ready_msg = await receive_message(self.reader)
+            except (ConnectionError, OSError, json.JSONDecodeError):
+                await self._disconnect()
+                return
+            
+            if ready_msg['message_type'] == "READY":
+                print(ready_msg['info'])
+
+            self._recv_loop_task = asyncio.create_task(self._recv_message_loop())
+            try:
+                await self._recv_loop_task
+            except asyncio.CancelledError:
+                pass
+        finally:
             await self._disconnect()
-            return
-        
-        if ready_msg['message_type'] == "READY":
-            print(ready_msg['info'])
-
-        self._recv_loop_task = asyncio.create_task(self._recv_message_loop())
-        try:
-            await self._recv_loop_task
-        except asyncio.CancelledError:
-            pass
 
     
     async def _recv_message_loop(self):
