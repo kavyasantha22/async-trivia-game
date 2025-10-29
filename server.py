@@ -105,7 +105,7 @@ class Server:
         self._answer_cond: asyncio.Condition | None = None
         self._round_no = 0
         self._question_round: QuestionRound | None = None
-        self._sessions : dict[str, ClientSession] = dict()
+        self._sessions : dict[asyncio.StreamWriter, ClientSession] = dict()
         self._active_sessions : set[ClientSession] = set()
 
         self._TRIVIA_QUESTION_FORMAT = "{question_word} {question_number} ({question_type}):\n{question}"
@@ -321,7 +321,7 @@ class Server:
                     print("Max players reached.")
                     return
                 new_session = ClientSession(username, writer)
-                self._sessions[username] = new_session
+                self._sessions[writer] = new_session
                 self._active_sessions.add(new_session)
                 if len(self._sessions) >= self._num_players:
                     self._join_cond.notify_all()
@@ -361,10 +361,11 @@ class Server:
 
     
     def _find_session_by_writer(self, writer : asyncio.StreamWriter) -> ClientSession | None:
-        for ses in self._active_sessions:
-            if ses.writer == writer:
-                return ses
-        return None
+        return self._sessions.get(writer)
+        # for ses in self._active_sessions:
+        #     if ses.writer == writer:
+        #         return ses
+        # return None
     
 
     def _generate_question_round(self) -> QuestionRound:
