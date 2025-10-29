@@ -276,11 +276,6 @@ async def main():
         [input_reader_task, client_loop_task],
         return_when=asyncio.FIRST_COMPLETED
     )
-    try:
-        while await receive_message(client.reader):
-            pass
-    except Exception:
-        pass
 
 
 if __name__ == "__main__":
