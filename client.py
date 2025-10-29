@@ -88,8 +88,11 @@ class Client:
         if self.reader is None or self.writer is None or self.is_shutting_down():
             return
 
-        
-        ready_msg = await receive_message(self.reader)
+        try:
+            ready_msg = await receive_message(self.reader)
+        except (ConnectionResetError, ConnectionError):
+            await self._disconnect()
+            return
 
         if ready_msg is None:
             await self._disconnect()
