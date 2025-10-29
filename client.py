@@ -28,6 +28,8 @@ class Client:
 
         self._answer_task = None
         self._recv_loop_task = None
+        self._connection_closed = asyncio.Event()
+        self._connection_closed.set()
 
 
     def _construct_hi_message(self) -> dict[str, str]:
@@ -60,23 +62,40 @@ class Client:
                 msg = self._construct_hi_message()
                 await send_message(self.writer, msg)
                 self.connected = True
+                self._connection_closed.clear()
                 return
 
 
     async def _disconnect(self) -> bool:
         if self.writer is None:
+            await self._finalize_connection()
             return True
         try:
             await send_message(self.writer, self._construct_bye_message())
         except Exception:
             pass  # connection may already be gone
-        
-        self.connected = False 
+
+        await self._finalize_connection()
         return True
         # self.connected = False
         # self.reader, self.writer = None, None
         
-    
+
+    async def _finalize_connection(self) -> None:
+        writer = self.writer
+        self.writer = None
+        self.reader = None
+        self.connected = False
+
+        if writer is not None:
+            try:
+                writer.close()
+                await writer.wait_closed()
+            except Exception:
+                pass
+        if not self._connection_closed.is_set():
+            self._connection_closed.set()
+
 
     async def run_loop(self) -> None:
         while not self.is_shutting_down():
@@ -105,27 +124,33 @@ class Client:
 
     
     async def _recv_message_loop(self):
-        while self.connected and not self.is_shutting_down():
-            if not self.reader:
-                await self._disconnect()
-                break
-            msg = await receive_message(self.reader)
-            if not msg:
-                break
-            t = msg.get("message_type")
-            if t == "READY":
-                print(msg["info"])
-            elif t == "QUESTION":
-                print(msg["trivia_question"])
-                self._answer_task = asyncio.create_task(self._answer_question(msg, msg["time_limit"])) 
-            elif t == "RESULT":
-                print(msg["feedback"])
-            elif t == "LEADERBOARD":
-                print(msg["state"])
-            elif t == "FINISHED":
-                print(msg["final_standings"])
-                self.connected = False  
-                break
+        try:
+            while True:
+                if self.reader is None:
+                    break
+                try:
+                    msg = await receive_message(self.reader)
+                except Exception:
+                    break
+                if not msg:
+                    break
+                t = msg.get("message_type")
+                if t == "READY":
+                    print(msg["info"])
+                elif t == "QUESTION":
+                    print(msg["trivia_question"])
+                    self._answer_task = asyncio.create_task(self._answer_question(msg, msg["time_limit"])) 
+                elif t == "RESULT":
+                    print(msg["feedback"])
+                elif t == "LEADERBOARD":
+                    print(msg["state"])
+                elif t == "FINISHED":
+                    print(msg["final_standings"])
+                    break
+        finally:
+            await cancel_task(self._answer_task)
+            self._answer_task = None
+            await self._finalize_connection()
             
  
     async def _answer_question(self, question, qtimeout: float | int) -> None:
@@ -227,6 +252,9 @@ class Client:
             else:
                 await INPUT_QUEUE.put(line)
 
+    async def wait_for_connection_close(self) -> None:
+        await self._connection_closed.wait()
+
 
 async def cancel_task(task: Optional[asyncio.Task]) -> None:
     if not task:
@@ -268,15 +296,15 @@ async def main():
     input_reader_task = asyncio.create_task(client.input_reader())
     client_loop_task = asyncio.create_task(client.run_loop())
 
-    await asyncio.wait(
+    done, pending = await asyncio.wait(
         [input_reader_task, client_loop_task],
         return_when=asyncio.FIRST_COMPLETED
     )
-    try:
-        while await receive_message(client.reader):
-            pass
-    except Exception:
-        pass
+
+    for task in pending:
+        await cancel_task(task)
+
+    await client.wait_for_connection_close()
 
 
 if __name__ == "__main__":
