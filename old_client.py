@@ -8,7 +8,6 @@ from typing import Any, Optional
 import requests
 import re
 
-INPUT_QUEUE: asyncio.Queue[str] = asyncio.Queue()
 
 class Client:
 
@@ -24,10 +23,12 @@ class Client:
                 self._ollama_config = ollama_config            
         self.reader, self.writer = None, None
         self.connected = False
+        self.has_answered: bool | None = None
         self._shutdown_event = asyncio.Event()
 
         self._answer_task = None
         self._recv_loop_task = None
+        self._input_task = None
 
 
     def _construct_hi_message(self) -> dict[str, str]:
@@ -43,27 +44,19 @@ class Client:
         }
 
 
-    async def connect(self) -> None:
-        while True:
-            if self.is_shutting_down():
-                return 
-            
-            inp = await INPUT_QUEUE.get()
-
-            if re.match(r"^CONNECT\s+\S+:\d+$", inp):
-                hostname, port = inp.split()[1].split(":")
-                try:
-                    self.reader, self.writer = await asyncio.open_connection(hostname, int(port))
-                except Exception:
-                    print(f"Connection failed")
-                    continue 
-                msg = self._construct_hi_message()
-                await send_message(self.writer, msg)
-                self.connected = True
-                return
+    async def _connect(self, hostname: str, port: str) -> None:
+        # print("Trying to connect...")
+        self.reader, self.writer = await asyncio.open_connection(hostname, int(port))
+        # peer = self.writer.get_extra_info("peername")
+        # print(f"Connected to {peer}")
+        msg = self._construct_hi_message()
+        await send_message(self.writer, msg)
+        # print("HI message is sent!")
+        self.connected = True
 
 
     async def _disconnect(self) -> bool:
+        # print("Trying to disconnect...")
         if self.writer is None:
             return True
         try:
@@ -74,26 +67,24 @@ class Client:
         self.connected = False
         self.reader, self.writer = None, None
         return True
-    
-
-    async def run_loop(self) -> None:
-        while True:
-            await self.connect()
-            await self.play()
-
+        
 
     async def play(self) -> None:
         if self.reader is None or self.writer is None:
+            # print("You are not connected yet. Cannot play.")
             return
-
+        # print(f"{self.username} is waiting for ready message...")
         ready_msg = await receive_message(self.reader)
 
         if ready_msg is None:
+            # print(f"{self.username} is waiting for ready message...")
             await self._disconnect()
             return
         
         if ready_msg['message_type'] == "READY":
             print(ready_msg['info'])
+        else:
+            print("Other type of message is received???")
 
         self._recv_loop_task = asyncio.create_task(self._recv_message_loop())
         try:
@@ -108,6 +99,7 @@ class Client:
                 await self._disconnect()
                 break
             msg = await receive_message(self.reader)
+            # print(repr(msg))
             if not msg:
                 break
             t = msg.get("message_type")
@@ -124,6 +116,8 @@ class Client:
                 print(msg["final_standings"])
                 self.connected = False  
                 break
+            else:
+                print("Not recognised message type")
             
  
     async def _answer_question(self, question, qtimeout: float | int) -> None:
@@ -138,7 +132,7 @@ class Client:
         }
         try:
             if self.mode == 'you':
-                ans = await asyncio.wait_for(INPUT_QUEUE.get(), timeout=qtimeout)
+                ans = await asyncio.wait_for(_STDIN_Q.get(), timeout=qtimeout)
                 if ans:
                     answer["answer"] = ans
 
@@ -149,13 +143,16 @@ class Client:
                     asyncio.to_thread(generate_answer, qtype, squest),
                     timeout=qtimeout,
                 )
-                if ans:
-                    answer["answer"] = ans
+
+                answer["answer"] = ans
 
             elif self.mode == 'ai':
                 ans = await self._ask_ollama(question=question, timeout=qtimeout)
-                if ans:
+                if ans is not None:
                     answer["answer"] = ans
+                else:
+                    answer["answer"] = ""
+
 
             await send_message(self.writer, answer)
         except asyncio.TimeoutError:
@@ -194,61 +191,92 @@ class Client:
             return None
 
 
-    # async def request_shutdown(self) -> None:
-    #     if self._shutdown_event.is_set():
-    #         return
-        
-    #     self._shutdown_event.set()
-    #     await self._disconnect()
+    async def prompt_connect(self) -> None:
+        while True:
+            if self.is_shutting_down():     
+                return 
+            
+            inp = await _STDIN_Q.get()
 
-    #     asyncio.gather(
-    #         cancel_task(self._answer_task),
-    #         cancel_task(self._recv_loop_task)
-    #     )
-    #     self._answer_task = None 
-    #     self._recv_loop_task = None
+            if inp is None:
+                if self.is_shutting_down(): 
+                    return 
+                
+            if re.match(r"^CONNECT\s+\S+:\d+$", inp):
+                hostname, port = inp.split()[1].split(":")
+                try:
+                    await self._connect(hostname, port)
+                    return
+                except Exception:
+                    print(f"Connection failed")
+        
+
+
+    async def request_shutdown(self) -> None:
+        if self._shutdown_event.is_set():
+            return
+        self._shutdown_event.set()
+        await self._disconnect()
+        # close writer ASAP to unblock reader
+        await self._cancel_answer_task()
+        if self._recv_loop_task and not self._recv_loop_task.done():
+            self._recv_loop_task.cancel()
+
+
+    async def _cancel_answer_task(self):
+        t = self._answer_task
+        if not t: 
+            return
+        
+        if not t.done():
+            t.cancel()
+            try:
+                await t
+            except asyncio.CancelledError:
+                pass
+
+        self._answer_task = None
 
 
     def is_shutting_down(self):
         return self._shutdown_event.is_set()
+
+
+_STDIN_Q: asyncio.Queue[str] = asyncio.Queue()
+
+
+async def install_stdin_reader(client: Client) -> None:
+    while True:
+        line = (await asyncio.to_thread(sys.stdin.readline)).strip()
+        if line == "EXIT":
+            await client.request_shutdown()
+            break
+        elif line == "DISCONNECT":
+            await client._disconnect()
+        else:
+            # print(repr(line))
+            await _STDIN_Q.put(line)
     
 
-    async def input_reader(self):
-        while True:
-            line = (await asyncio.to_thread(sys.stdin.readline)).strip()    
-            if line == "EXIT":
-                break 
-            elif line == "DISCONNECT":
-                self._shutdown_event.set()
-                await self._disconnect()
-            else:
-                await INPUT_QUEUE.put(line)
-    
-
-
-async def cancel_task(task: Optional[asyncio.Task]) -> None:
-    if not task:
-        return
-
-    task.cancel()
-    try:
-        await task
-    except asyncio.CancelledError:
-        pass
-    except Exception as e:
-        print(e)
-
-
-def parse_config_path() -> Path:        
-    if len(sys.argv) != 3 or sys.argv[1] != "--config":
+def parse_config_path() -> Path:
+    def _missing_config() -> None:
         sys.stderr.write("client.py: Configuration not provided\n")
         sys.exit(1)
+
+    if len(sys.argv) != 3 or sys.argv[1] != "--config":
+        _missing_config()
 
     config_path = Path(sys.argv[2])
     if not config_path.exists():
         sys.stderr.write(f"client.py: File {config_path} does not exist")
         sys.exit(1)
     return config_path
+
+
+async def bfunc(client: Client):
+    while not client.is_shutting_down():
+        await client.prompt_connect()
+        await client.play()
 
 
 async def main():
@@ -263,13 +291,11 @@ async def main():
         
     client = Client(username, mode, ollama_config)
 
-    input_reader_task = asyncio.create_task(client.input_reader())
-    client_loop_task = asyncio.create_task(client.run_loop())
+    a = asyncio.create_task(install_stdin_reader(client))
 
-    await asyncio.wait(
-        [input_reader_task, client_loop_task],
-        return_when=asyncio.FIRST_COMPLETED
-    )
+    b = asyncio.create_task(bfunc(client))
+
+    await asyncio.wait([a,b],return_when=asyncio.FIRST_COMPLETED)
     
     sys.exit(0)
 
