@@ -70,10 +70,12 @@ class Client:
             await send_message(self.writer, self._construct_bye_message())
         except Exception:
             pass  # connection may already be gone
-
-        self.connected = False
-        self.reader, self.writer = None, None
+        
+        self.connected = False 
         return True
+        # self.connected = False
+        # self.reader, self.writer = None, None
+        
     
 
     async def run_loop(self) -> None:
@@ -270,11 +272,11 @@ async def main():
         [input_reader_task, client_loop_task],
         return_when=asyncio.FIRST_COMPLETED
     )
-
-    while not client.writer.is_closing():
-        # print("STILL CONNE")
+    try:
+        while await receive_message(client.reader):
+            pass
+    except Exception:
         pass
-    
 
 
 if __name__ == "__main__":
