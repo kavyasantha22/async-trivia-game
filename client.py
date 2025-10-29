@@ -216,7 +216,7 @@ class Client:
 
     async def input_reader(self):
         while True:
-            line = (await asyncio.to_thread(sys.stdin.readline)) 
+            line = (await asyncio.to_thread(input))
             if line == "EXIT":
                 await self.request_shutdown()
                 return 
