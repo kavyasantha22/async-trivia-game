@@ -153,6 +153,8 @@ class Client:
                 ans = await asyncio.wait_for(INPUT_QUEUE.get(), timeout=qtimeout)
                 if ans:
                     answer["answer"] = ans
+                await send_message(self.writer, answer)
+                
 
             elif self.mode == 'auto':
                 qtype = question['question_type'] 
@@ -163,13 +165,16 @@ class Client:
                 )
                 if ans:
                     answer["answer"] = ans
+                await send_message(self.writer, answer)
+                
 
             elif self.mode == 'ai':
                 ans = await self._ask_ollama(question=question, timeout=qtimeout)
                 if ans:
                     answer["answer"] = ans
+                await send_message(self.writer, answer)
+                
 
-            await send_message(self.writer, answer)
         except asyncio.TimeoutError:
             return None
               
