@@ -202,10 +202,9 @@ class Client:
         await self._disconnect()
                 
         # print("disconnected.")
-        asyncio.gather(
-            cancel_task(self._answer_task),
-            cancel_task(self._recv_loop_task)
-        )
+        await cancel_task(self._answer_task)
+        await cancel_task(self._recv_loop_task)
+        
         # print("tasks canceled.")
         self._answer_task = None 
         self._recv_loop_task = None
