@@ -271,7 +271,6 @@ async def main():
         return_when=asyncio.FIRST_COMPLETED
     )
     
-    sys.exit(0)
 
 
 if __name__ == "__main__":

@@ -276,7 +276,7 @@ def parse_config_path() -> Path:
 async def bfunc(client: Client):
     while not client.is_shutting_down():
         await client.prompt_connect()
-        await client.play()
+        await client.ply()
 
 
 async def main():
