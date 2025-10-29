@@ -87,12 +87,13 @@ class Client:
         if self._disconnect() or self.is_shutting_down():
             return
         
-        ready_msg = await receive_message(self.reader)
+        # ready_msg = await receive_message(self.reader)
 
-        # try:
-        #     ready_msg = await receive_message(self.reader)
-        # except Exception:
-        #     return
+        try:
+            ready_msg = await receive_message(self.reader)
+        except Exception:
+            await self._disconnect()
+            return
 
         if ready_msg is None:
             await self._disconnect()
