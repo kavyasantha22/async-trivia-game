@@ -270,6 +270,10 @@ async def main():
         [input_reader_task, client_loop_task],
         return_when=asyncio.FIRST_COMPLETED
     )
+
+    while not client.writer.is_closing():
+        # print("STILL CONNE")
+        pass
     
 
 
