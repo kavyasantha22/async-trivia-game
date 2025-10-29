@@ -6,6 +6,7 @@ from answer import generate_answer
 import asyncio
 from typing import Any, Optional
 import requests
+import re
 
 
 class Client:
@@ -187,29 +188,25 @@ class Client:
             return None
 
 
-    async def prompt_connect(self) -> bool:
-        if self.is_shutting_down():     
-            return False
-        
-        inp = await _STDIN_Q.get()
+    async def prompt_connect(self) -> None:
+        while True:
+            if self.is_shutting_down():     
+                return 
+            
+            inp = await _STDIN_Q.get()
 
-        if inp is None:
-            if self.is_shutting_down(): 
-                return False
-        try:
-            if inp[0] != "CONNECT":
-                print("Unrecognised command.")
-        except Exception:
-            return False
+            if inp is None:
+                if self.is_shutting_down(): 
+                    return 
+                
+            if re.match(r"^CONNECT\s+\S+:\d+$", inp):
+                hostname, port = inp.split()[1].split(":")
+                try:
+                    await self._connect(hostname, port)
+                    return
+                except Exception:
+                    print(f"Connection failed")
         
-        try:
-            hostname, port = inp[1].split(":")
-            await self._connect(hostname, port)
-            return True
-        except Exception:
-            print(f"Connection failed")
-
-        return False
 
 
     async def request_shutdown(self) -> None:
@@ -275,8 +272,8 @@ def parse_config_path() -> Path:
 
 async def bfunc(client: Client):
     while not client.is_shutting_down():
-        if client.prompt_connect():
-            await client.play()
+        await client.prompt_connect()
+        await client.play()
 
 
 async def main():
