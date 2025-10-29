@@ -187,7 +187,7 @@ class Client:
             return None
 
 
-    async def prompt_connect(self) -> None:
+    async def prompt_connect(self) -> Bool:
         if self.is_shutting_down():     
             return
         
@@ -203,8 +203,10 @@ class Client:
         try:
             hostname, port = inp[1].split(":")
             await self._connect(hostname, port)
+            return True
         except Exception:
             print(f"Connection failed")
+        return False
 
 
     async def request_shutdown(self) -> None:
@@ -270,7 +272,8 @@ def parse_config_path() -> Path:
 
 async def bfunc(client: Client):
     while not client.is_shutting_down():
-        await client.prompt_connect()
+        if not await client.prompt_connect():
+            return
         await client.play()
 
 
