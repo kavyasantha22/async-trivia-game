@@ -87,7 +87,7 @@ class Client:
 
         try:
             ready_msg = await receive_message(self.reader)
-        except (ConnectionResetError, ConnectionError):
+        except (ConnectionResetError, ConnectionError, OSError):
             await self._disconnect()
             return
         
@@ -108,7 +108,7 @@ class Client:
                 break
             try:
                 msg = await receive_message(self.reader)
-            except ConnectionError:
+            except (ConnectionError, OSError):
                 await self._disconnect()
                 continue
             t = msg.get("message_type")
