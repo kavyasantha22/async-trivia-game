@@ -7,11 +7,8 @@ import asyncio
 from typing import Any, Optional
 import requests
 import re
-
 INPUT_QUEUE: asyncio.Queue[str] = asyncio.Queue()
-
 class Client:
-
     def __init__(self, username, mode, ollama_config=None) -> None:
         self.username = username
         self.mode = mode
@@ -25,31 +22,24 @@ class Client:
         self.reader, self.writer = None, None
         self.connected = False
         self._shutdown_event = asyncio.Event()
-
         self._answer_task = None
         self._recv_loop_task = None
-
-
     def _construct_hi_message(self) -> dict[str, str]:
         return {
             "message_type": "HI",
             "username": self.username
         }
     
-
     def _construct_bye_message(self) -> dict[str, str]:
         return {
             "message_type": "BYE"
         }
-
-
     async def connect(self) -> None:
         while True:
             if self.is_shutting_down():
                 return 
             
             inp = await INPUT_QUEUE.get()
-
             if re.match(r"^CONNECT\s+\S+:\d+$", inp):
                 hostname, port = inp.split()[1].split(":")
                 try:
@@ -63,8 +53,6 @@ class Client:
                 await send_message(self.writer, msg)
                 self.connected = True
                 return
-
-
     async def _disconnect(self) -> bool:
         if self.writer is None:
             return True
@@ -81,7 +69,6 @@ class Client:
             pass
         # self.reader = None
         # self.writer = None
-
         return True
         
     
@@ -89,29 +76,22 @@ class Client:
         while not self.is_shutting_down():
             await self.connect()
             await self.play()
-
-
     async def play(self) -> None:
         if self.reader is None or self.writer is None or self.is_shutting_down():
             return
-
-
         ready_msg = await receive_message(self.reader)
         
         if not ready_msg:
             await self._disconnect()
             return
-
         
         if ready_msg['message_type'] == "READY":
             print(ready_msg['info'])
-
         self._recv_loop_task = asyncio.create_task(self._recv_message_loop())
         try:
             await self._recv_loop_task
         except asyncio.CancelledError:
             pass
-
     
     async def _recv_message_loop(self):
         while self.connected and not self.is_shutting_down():
@@ -119,11 +99,9 @@ class Client:
                 await self._disconnect()
                 break
             msg = await receive_message(self.reader)
-
             if not msg:
                 await self._disconnect()
                 return
-
             t = msg.get("message_type")
             if t == "READY":
                 print(msg["info"])
@@ -153,9 +131,6 @@ class Client:
                 ans = await asyncio.wait_for(INPUT_QUEUE.get(), timeout=qtimeout)
                 if ans:
                     answer["answer"] = ans
-                await send_message(self.writer, answer)
-                
-
             elif self.mode == 'auto':
                 qtype = question['question_type'] 
                 squest = question['short_question']
@@ -165,20 +140,14 @@ class Client:
                 )
                 if ans:
                     answer["answer"] = ans
-                await send_message(self.writer, answer)
-                
-
             elif self.mode == 'ai':
                 ans = await self._ask_ollama(question=question, timeout=qtimeout)
                 if ans:
                     answer["answer"] = ans
-                await send_message(self.writer, answer)
-                
-
+            await send_message(self.writer, answer)
         except asyncio.TimeoutError:
             return None
               
-
     async def _ask_ollama(self, question: dict[str, Any], timeout: float) -> str | None:
         def _call():
             return requests.post(url, json=payload)
@@ -188,7 +157,6 @@ class Client:
         base = self._ollama_config['ollama_host']  
         port = self._ollama_config['ollama_port']
         model = self._ollama_config['ollama_model']
-
         if not base.startswith(('http://', 'https://')):
             base = f'http://{base}'
             
@@ -209,8 +177,6 @@ class Client:
             return resp.json()["message"]["content"]
         except asyncio.TimeoutError:
             return None
-
-
     async def request_shutdown(self) -> None:
         if self._shutdown_event.is_set():
             return
@@ -225,12 +191,9 @@ class Client:
         # print("tasks canceled.")
         self._answer_task = None 
         self._recv_loop_task = None
-
-
     def is_shutting_down(self):
         return self._shutdown_event.is_set()
     
-
     async def input_reader(self):
         while True:
             line = (await asyncio.to_thread(input))
@@ -241,57 +204,40 @@ class Client:
                 await self._disconnect()
             else:
                 await INPUT_QUEUE.put(line)
-
-
 async def cancel_task(task: Optional[asyncio.Task]) -> None:
     if not task:
         return
-
     task.cancel()
     try:
         await task
     except asyncio.CancelledError:
         pass
     except Exception as e:
-        pass
-        # print(e)
-
-
+        print(e)
 def parse_config_path() -> Path:        
     if len(sys.argv) != 3 or sys.argv[1] != "--config":
         sys.stderr.write("client.py: Configuration not provided\n")
         sys.exit(1)
-
     config_path = Path(sys.argv[2])
     if not config_path.exists():
         sys.stderr.write(f"client.py: File {config_path} does not exist")
         sys.exit(1)
     return config_path
-
-
 async def main():
     config_path = parse_config_path()
     file = config_path.open("r", encoding='utf-8')
     config = json.load(file)
     file.close()
-
     username = config.get('username')
     mode = config.get('client_mode')
     ollama_config = config.get('ollama_config')
         
     client = Client(username, mode, ollama_config)
-
     input_reader_task = asyncio.create_task(client.input_reader())
     client_loop_task = asyncio.create_task(client.run_loop())
-
     await asyncio.wait(
         [input_reader_task, client_loop_task],
         return_when=asyncio.FIRST_COMPLETED
     )
-
-
 if __name__ == "__main__":
     asyncio.run(main())
-
-        
-        
