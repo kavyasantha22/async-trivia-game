@@ -76,6 +76,7 @@ class Client:
         # self.connected = False
         # self.reader, self.writer = None, None
         
+    
 
     async def run_loop(self) -> None:
         while not self.is_shutting_down():
@@ -84,16 +85,10 @@ class Client:
 
 
     async def play(self) -> None:
-        if self._disconnect() or self.is_shutting_down():
+        if self.reader is None or self.writer is None or self.is_shutting_down():
             return
-        
-        # ready_msg = await receive_message(self.reader)
 
-        try:
-            ready_msg = await receive_message(self.reader)
-        except Exception:
-            await self._disconnect()
-            return
+        ready_msg = await receive_message(self.reader)
 
         if ready_msg is None:
             await self._disconnect()
