@@ -70,16 +70,16 @@ class Client:
             await send_message(self.writer, self._construct_bye_message())
         except Exception:
             pass  # connection may already be gone
+        self.connected = False
         
         try:
             self.writer.close()
             await self.writer.wait_closed()
         except Exception:
             pass
-        
-        self.reader = None
-        self.writer = None
-        self.connected = False
+        # self.reader = None
+        # self.writer = None
+
         return True
         
     
