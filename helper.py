@@ -10,7 +10,6 @@ def decode_message(json_bytes):
 
 
 async def send_message(writer: asyncio.StreamWriter, message: dict):
-    # print(f"sending: {message}")
     load = encode_message(message) + b"\n"
     writer.write(load)
     await writer.drain()
@@ -21,5 +20,4 @@ async def receive_message(reader: asyncio.StreamReader) -> dict | None:
     if not line:
         return None
     decoded = decode_message(line)  
-    # print(decoded)
     return decoded

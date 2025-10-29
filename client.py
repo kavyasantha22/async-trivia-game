@@ -188,28 +188,23 @@ class Client:
 
 
     async def prompt_connect(self) -> None:
-        while True:
-            if self.is_shutting_down():     
+        if self.is_shutting_down():     
+            return
+        
+        inp = await _STDIN_Q.get()
+
+        if inp is None:
+            if self.is_shutting_down(): 
                 return
-            
-            inp = await _STDIN_Q.get()
 
-            if inp is None:
-                if self.is_shutting_down(): 
-                    return
-                continue
-
-            inp = inp.split()
-            if inp[0] != "CONNECT":
-                print("Unrecognised command.")
-                continue
-            try:
-                hostname, port = inp[1].split(":")
-                await self._connect(hostname, port)
-                break
-            except Exception:
-                print(f"Connection failed")
-                continue
+        inp = inp.split()
+        if inp[0] != "CONNECT":
+            print("Unrecognised command.")
+        try:
+            hostname, port = inp[1].split(":")
+            await self._connect(hostname, port)
+        except Exception:
+            print(f"Connection failed")
 
 
     async def request_shutdown(self) -> None:
