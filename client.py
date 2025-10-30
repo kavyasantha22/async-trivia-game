@@ -102,7 +102,6 @@ class Client:
                 
                 if ready_msg:
                     break
-                return
         except (OSError, asyncio.IncompleteReadError):
             return
         
