@@ -92,16 +92,19 @@ class Client:
 
 
     async def play(self) -> None:
-        if self.reader is None or self.writer is None or self.is_shutting_down():
+        try:
+            while True:
+                if self.reader is None or self.writer is None or self.is_shutting_down():
+                    return
+
+
+                ready_msg = await receive_message(self.reader)
+                
+                if ready_msg:
+                    break
+                return
+        except (OSError, asyncio.IncompleteReadError):
             return
-
-
-        ready_msg = await receive_message(self.reader)
-        
-        if not ready_msg:
-            await self._disconnect()
-            return
-
         
         if ready_msg['message_type'] == "READY":
             print(ready_msg['info'])
