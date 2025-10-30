@@ -44,7 +44,7 @@ class Client:
 
 
     async def connect(self) -> None:
-        print("Please connect.")
+        # print("Please connect.")
         while True:
             if self.is_shutting_down():
                 return 
@@ -86,19 +86,19 @@ class Client:
 
 
     async def play(self) -> None:
-        print("Started playing.")
+        # print("Started playing.")
         if self.reader is None or self.writer is None or self.is_shutting_down():
-            print("shutt down while in play")
+            # print("shutt down while in play")
             return
 
         try:
             ready_msg = await receive_message(self.reader)
         except (ConnectionResetError, ConnectionError, asyncio.IncompleteReadError):
-            print("An expected exception is received: {e}")
+            # print("An expected exception is received: {e}")
             await self._disconnect()
             return
         except (Exception):
-            print("Other exception is received: {e}")
+            # print("Other exception is received: {e}")
             return
 
         if ready_msg is None:
