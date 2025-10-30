@@ -57,8 +57,6 @@ class Client:
                 except ConnectionRefusedError:
                     print(f"Connection failed")
                     continue 
-                except (OSError):
-                    continue
                 msg = self._construct_hi_message()
                 await send_message(self.writer, msg)
                 self.connected = True
@@ -72,19 +70,14 @@ class Client:
             await send_message(self.writer, self._construct_bye_message())
         except Exception:
             pass  # connection may already be gone
-        self.connected = False
         
-        try:
-            self.writer.close()
-            await self.writer.wait_closed()
-        except Exception:
-            pass
-        # self.reader = None
-        # self.writer = None
-
+        self.connected = False 
         return True
+        # self.connected = False
+        # self.reader, self.writer = None, None
         
     
+
     async def run_loop(self) -> None:
         while not self.is_shutting_down():
             await self.connect()
@@ -92,17 +85,17 @@ class Client:
 
 
     async def play(self) -> None:
+        if self.reader is None or self.writer is None or self.is_shutting_down():
+            return
+
         try:
-            while True:
-                if self.reader is None or self.writer is None or self.is_shutting_down():
-                    return
+            ready_msg = await receive_message(self.reader)
+        except (ConnectionResetError, ConnectionError, asyncio.IncompleteReadError):
+            await self._disconnect()
+            return
 
-                ready_msg = await receive_message(self.reader)
-                
-                if ready_msg:
-                    break
-
-        except (OSError, asyncio.IncompleteReadError):
+        if ready_msg is None:
+            await self._disconnect()
             return
         
         if ready_msg['message_type'] == "READY":
@@ -121,11 +114,8 @@ class Client:
                 await self._disconnect()
                 break
             msg = await receive_message(self.reader)
-
             if not msg:
-                await self._disconnect()
-                return
-
+                break
             t = msg.get("message_type")
             if t == "READY":
                 print(msg["info"])
@@ -138,7 +128,6 @@ class Client:
                 print(msg["state"])
             elif t == "FINISHED":
                 print(msg["final_standings"])
-                await self._disconnect()
                 self.connected = False  
                 break
             
@@ -146,6 +135,9 @@ class Client:
     async def _answer_question(self, question, qtimeout: float | int) -> None:
         if self.is_shutting_down() or not self.writer: 
             return
+        
+        if not self.writer:
+            return 
         
         answer = {
             "message_type": "ANSWER"
@@ -284,6 +276,11 @@ async def main():
         [input_reader_task, client_loop_task],
         return_when=asyncio.FIRST_COMPLETED
     )
+    try:
+        while await receive_message(client.reader):
+            pass
+    except Exception:
+        pass
 
 
 if __name__ == "__main__":
