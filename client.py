@@ -85,36 +85,39 @@ class Client:
         return True
         
     
-    async def run_loop(self) -> None:
-        while not self.is_shutting_down():
-            await self.connect()
-            await self.play()
+    # async def run_loop(self) -> None:
+    #     while not self.is_shutting_down():
+    #         await self.connect()
+    #         await self.play()
 
 
     async def play(self) -> None:
         try:
-            while True:
-                if self.reader is None or self.writer is None or self.is_shutting_down():
-                    return
-                try:
-                    ready_msg = await receive_message(self.reader)
-                except Exception:
-                    return 
+            while not self.is_shutting_down():
+                await self.connect()
+
+                if self._disconnect or self.reader is None or self.writer is None:
+                    continue
+
+                ready_msg = await receive_message(self.reader)
                 
-                if ready_msg:
-                    break
+                if not ready_msg:
+                    continue
+
+                if ready_msg['message_type'] == "READY":
+                    print(ready_msg['info'])
+
+                self._recv_loop_task = asyncio.create_task(self._recv_message_loop())
+                
+                try:
+                    await self._recv_loop_task
+                except asyncio.CancelledError:
+                    pass
 
         except (Exception):
             return
         
-        if ready_msg['message_type'] == "READY":
-            print(ready_msg['info'])
-
-        self._recv_loop_task = asyncio.create_task(self._recv_message_loop())
-        try:
-            await self._recv_loop_task
-        except asyncio.CancelledError:
-            pass
+       
 
     
     async def _recv_message_loop(self):
