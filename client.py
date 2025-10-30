@@ -116,7 +116,7 @@ class Client:
             except asyncio.CancelledError:
                 pass
         except asyncio.CancelledError:
-            return
+            pass
 
     
     async def _recv_message_loop(self):
