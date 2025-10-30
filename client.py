@@ -44,6 +44,7 @@ class Client:
 
 
     async def connect(self) -> None:
+        print("Please connect.")
         while True:
             if self.is_shutting_down():
                 return 
@@ -85,27 +86,37 @@ class Client:
 
 
     async def play(self) -> None:
-        if self.reader is None or self.writer is None or self.is_shutting_down():
-            return
-
         try:
-            ready_msg = await receive_message(self.reader)
-        except (ConnectionResetError, ConnectionError, asyncio.IncompleteReadError):
-            await self._disconnect()
-            return
+            print("Started playing.")
+            if self.reader is None or self.writer is None or self.is_shutting_down():
+                print("shutt down while in play")
+                return
 
-        if ready_msg is None:
-            await self._disconnect()
-            return
-        
-        if ready_msg['message_type'] == "READY":
-            print(ready_msg['info'])
+            try:
+                ready_msg = await receive_message(self.reader)
+            except (ConnectionResetError, ConnectionError, asyncio.IncompleteReadError):
+                print("An expected exception is received: {e}")
+                await self._disconnect()
+                return
+            except (Exception):
+                print("Other exception is received: {e}")
+                return
 
-        self._recv_loop_task = asyncio.create_task(self._recv_message_loop())
-        try:
-            await self._recv_loop_task
+            if ready_msg is None:
+                await self._disconnect()
+                print("Message none is received")
+                return
+            
+            if ready_msg['message_type'] == "READY":
+                print(ready_msg['info'])
+
+            self._recv_loop_task = asyncio.create_task(self._recv_message_loop())
+            try:
+                await self._recv_loop_task
+            except asyncio.CancelledError:
+                pass
         except asyncio.CancelledError:
-            pass
+            return
 
     
     async def _recv_message_loop(self):

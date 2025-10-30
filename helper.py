@@ -20,7 +20,7 @@ async def receive_message(reader: asyncio.StreamReader) -> dict | None:
         line = await reader.readline() 
     except asyncio.CancelledError:
         raise                                   
-    except (ConnectionResetError, OSError, asyncio.IncompleteReadError):
+    except (ConnectionResetError, OSError, asyncio.IncompleteReadError, asyncio.InvalidStateError):
         return None                             
     if not line:
         return None
