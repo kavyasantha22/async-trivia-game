@@ -108,7 +108,7 @@ class Client:
                     print(ready_msg['info'])
 
                 self._recv_loop_task = asyncio.create_task(self._recv_message_loop())
-                
+
                 try:
                     await self._recv_loop_task
                 except asyncio.CancelledError:
@@ -283,7 +283,7 @@ async def main():
     client = Client(username, mode, ollama_config)
 
     input_reader_task = asyncio.create_task(client.input_reader())
-    client_loop_task = asyncio.create_task(client.run_loop())
+    client_loop_task = asyncio.create_task(client.play())
 
     await asyncio.wait(
         [input_reader_task, client_loop_task],
