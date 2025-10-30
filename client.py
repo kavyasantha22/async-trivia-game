@@ -96,13 +96,15 @@ class Client:
             while True:
                 if self.reader is None or self.writer is None or self.is_shutting_down():
                     return
-
-
-                ready_msg = await receive_message(self.reader)
+                try:
+                    ready_msg = await receive_message(self.reader)
+                except Exception:
+                    return 
                 
                 if ready_msg:
                     break
-        except (OSError, asyncio.IncompleteReadError):
+
+        except (Exception):
             return
         
         if ready_msg['message_type'] == "READY":
