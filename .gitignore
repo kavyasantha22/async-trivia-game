@@ -13,3 +13,6 @@ run_client.sh
 run_server.sh
 push.sh
 pyvenv.cfg
+c.json
+bot.json 
+s.json
