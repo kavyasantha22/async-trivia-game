@@ -229,15 +229,18 @@ class Client:
     
 
     async def input_reader(self):
-        while True:
-            line = (await asyncio.to_thread(input))
-            if line == "EXIT":
-                await self.request_shutdown()
-                return 
-            elif line == "DISCONNECT":
-                await self._disconnect()
-            else:
-                await INPUT_QUEUE.put(line)
+        try:
+            while True:
+                line = (await asyncio.to_thread(input))
+                if line == "EXIT":
+                    await self.request_shutdown()
+                    return 
+                elif line == "DISCONNECT":
+                    await self._disconnect()
+                else:
+                    await INPUT_QUEUE.put(line)
+        except Exception:
+            await self.request_shutdown()
 
 
 async def cancel_task(task: Optional[asyncio.Task]) -> None:
