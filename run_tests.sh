@@ -5,7 +5,7 @@ set -u
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 printf "Running unit tests...\n"
-python3 -m unittest discover "$ROOT_DIR/tests/unit" -v
+python3 tests/unit/run_unit_tests.py
 UNIT_STATUS=$?
 
 printf "\nRunning integration tests...\n"
