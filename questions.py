@@ -1,15 +1,16 @@
 import random
 
-def generate_mathematics_question():
+def generate_mathematics_question(rng=None):
+    rng = rng or rng
     OPERANDS_RANGE = [1, 100]
     OPERATORS = ["+", "-"]
-    operands = random.randint(2, 5)
+    operands = rng.randint(2, 5)
     ret = ""
 
-    ret += str(random.randint(OPERANDS_RANGE[0], OPERANDS_RANGE[1]))
+    ret += str(rng.randint(OPERANDS_RANGE[0], OPERANDS_RANGE[1]))
     operands -= 1
     while operands:
-        ret += " " + random.choice(OPERATORS) + " " + str(random.randint(*OPERANDS_RANGE))
+        ret += " " + rng.choice(OPERATORS) + " " + str(rng.randint(*OPERANDS_RANGE))
         operands -= 1
 
     return ret
@@ -33,30 +34,33 @@ def _int_to_roman(n: int) -> str:
     return "".join(out)
 
 
-def generate_roman_numerals_question():
+def generate_roman_numerals_question(rng=None):
+    rng = rng or random
     ROMAN_RANGE = [1, 3999]
-    number = random.randint(ROMAN_RANGE[0], ROMAN_RANGE[1])
+    number = rng.randint(ROMAN_RANGE[0], ROMAN_RANGE[1])
 
     return _int_to_roman(number)
 
-def _generate_ip_cidr():
+def _generate_ip_cidr(rng):
     BIT_RANGE = [0, 255]
     HOST_BITS_RANGE = [0, 32]
 
-    ip = [str(random.randint(*BIT_RANGE)) for _ in range(4)]
+    ip = [str(rng.randint(*BIT_RANGE)) for _ in range(4)]
     
     ret = ".".join(ip)
-    ret += "/" + str(random.randint(*HOST_BITS_RANGE))
+    ret += "/" + str(rng.randint(*HOST_BITS_RANGE))
 
     return ret
 
 
-def generate_usable_addresses_question():
-    return _generate_ip_cidr()
+def generate_usable_addresses_question(rng=None):
+    rng = rng or random
+    return _generate_ip_cidr(rng)
 
 
-def generate_network_broadcast_question():
-    return _generate_ip_cidr()
+def generate_network_broadcast_question(rng=None):
+    rng = rng or random
+    return _generate_ip_cidr(rng)
 
 
 # for _ in range(10):
