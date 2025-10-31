@@ -167,8 +167,12 @@ class Server:
                 async with self._join_cond:
                     await self._join_cond.wait_for(lambda: len(self._sessions) >= self._num_players)
 
+                self._log("Everyone has joined!")
                 ready_msg = self._construct_ready_message()
+                self._log("Sending ready message...")
+                # question_round_start = cur_time + self._question_interval
                 await self._broadcast(ready_msg)
+                print("Finished sending ready message!")
                 await asyncio.sleep(self._question_interval)
                 self._transition_state(GameState.QUESTION, "Starting first question round")
 
@@ -217,6 +221,7 @@ class Server:
         self._log("Shutting down server and closing client sessions")
         for sess in self._sessions.values():
             if sess.writer is None:
+                print(f"{sess.username} has no writer")
                 continue
             try:
                 await self._drop_session(sess.writer)
@@ -231,21 +236,25 @@ class Server:
 
 
     async def _broadcast(self, message: dict[str, Any]) -> None:
+        # print("broadcasting...")
         tasks = []
 
         recipients: list[str] = []
         for sess in list(self._active_sessions):
             if sess.writer is None:
+                print(f"{sess.username} has no writer")
                 continue
             recipients.append(sess.username)
             tasks.append(asyncio.create_task(send_message(sess.writer, message)))
 
         self._log(f"Broadcast -> {recipients} | {self._summarize_message(message)}")
         results = await asyncio.gather(*tasks, return_exceptions=True)
+        # Surface any exceptions for visibility
         for idx, res in enumerate(results):
             if isinstance(res, Exception):
                 self._log(f"Broadcast send error to {recipients[idx]}: {res}")
 
+        # print("Finished broadcasting.")
 
 
     async def _handle_client(self, reader, writer) -> None:
@@ -253,13 +262,16 @@ class Server:
         self._log(f"[+] connected {peer}")
         while True:
             if reader is None or writer is None:
+                # print("reader or writer is None!")
                 break
             try:
                 data = await receive_message(reader)  
+                # print(data) 
             except Exception as e:
                 self._log(f"Receive error from {peer}: {e}")
                 break                                   
             if data is None:
+                print("Data is none!")                            
                 break
 
             try:
@@ -273,9 +285,11 @@ class Server:
         discarded_ses = self._find_session_by_writer(writer)
 
         if discarded_ses is None:
+            print(f"Session with writer {writer} is not found.")
             return
         
         self._active_sessions.discard(discarded_ses)
+        print(f"dropping {discarded_ses.username}...")
         self._log(f"Active sessions: {len(self._active_sessions)}/{self._num_players}")
         discarded_ses.is_active = False
         discarded_ses.writer = None
@@ -291,6 +305,8 @@ class Server:
         try:
             mtype = received["message_type"]
         except Exception:
+            print("There is no message_type")
+            print(received)
             return
 
         sess = self._find_session_by_writer(writer)
@@ -302,6 +318,7 @@ class Server:
 
             async with self._join_cond:
                 if len(self._sessions.keys()) >= self._num_players:
+                    print("Max players reached.")
                     return
                 new_session = ClientSession(username, writer)
                 self._sessions[writer] = new_session
@@ -534,11 +551,14 @@ class Server:
         elif question_type == "Mathematics":
             return generate_mathematics_question()
         else:
+            print("Unrecognised question type.")
+            print(question_type)
             return ""
 
 def from_dict(data: dict[str, Any]) -> ServerMessageConfig:
     allowed = {f.name for f in fields(ServerMessageConfig)}
     clean = {k: v for k, v in data.items() if k in allowed}
+    # print(clean)
     return ServerMessageConfig(**clean)
 
 
