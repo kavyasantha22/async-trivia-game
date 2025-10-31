@@ -1,0 +1,27 @@
+{
+  "port": 12000,
+  "players": 1,
+  "question_formats": {
+    "Mathematics": "{} = ?",
+    "Roman Numerals": "Convert {} to decimal.",
+    "Network and Broadcast Address of a Subnet": "Provide the network and broadcast addresses for {}.",
+    "Usable IP Addresses of a Subnet": "How many usable IPv4 addresses does {} have?"
+  },
+  "question_types": [
+    "Mathematics",
+    "Roman Numerals",
+    "Network and Broadcast Address of a Subnet",
+    "Usable IP Addresses of a Subnet"
+  ],
+  "question_seconds": 30,
+  "question_interval_seconds": 5,
+  "ready_info": "Get ready! {players} player game starting in {question_interval_seconds} seconds.",
+  "question_word": "Question",
+  "correct_answer": "Correct! {answer} was right.",
+  "incorrect_answer": "Incorrect. The correct answer was {correct_answer}.",
+  "points_noun_singular": "point",
+  "points_noun_plural": "points",
+  "final_standings_heading": "Final Standings",
+  "one_winner": "Winner: {}",
+  "multiple_winners": "Winners: {}"
+}

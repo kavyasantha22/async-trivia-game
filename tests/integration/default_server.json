@@ -1,0 +1,25 @@
+{
+  "port": 7777,
+  "players": 1,
+  "question_types": [
+    "Mathematics"
+  ],
+  "question_formats": {
+    "Mathematics": "Solve {}",
+    "Roman Numerals": "Convert {}",
+    "Usable IP Addresses of a Subnet": "Usable hosts in {}",
+    "Network and Broadcast Address of a Subnet": "Network/broadcast of {}"
+  },
+  "question_seconds": 5,
+  "question_interval_seconds": 1.0,
+  "ready_info": "Default integration server starting.",
+  "question_word": "Question",
+  "correct_answer": "Correct: {answer}.",
+  "incorrect_answer": "Incorrect, expected {correct_answer}.",
+  "points_noun_singular": "point",
+  "points_noun_plural": "points",
+  "final_standings_heading": "Default standings:",
+  "one_winner": "Winner: {}",
+  "multiple_winners": "Winners: {}"
+}
+

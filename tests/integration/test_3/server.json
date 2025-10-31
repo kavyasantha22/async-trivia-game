@@ -1,0 +1,25 @@
+{
+"port": 7779,
+"players": 1,
+"question_types": [
+    "Roman Numerals"
+],
+"question_formats": {
+    "Mathematics": "Evaluate {}",
+    "Roman Numerals": "Convert {} to decimal",
+    "Usable IP Addresses of a Subnet": "How many usable addresses in {}?",
+    "Network and Broadcast Address of a Subnet": "Network and broadcast addresses of {}?"
+},
+"question_seconds": 1,
+"question_interval_seconds": 1.0,
+"ready_info": "Get ready!",
+"question_word": "Question",
+"correct_answer": "Nice work, {answer}!",
+"incorrect_answer": "Oops! The right answer was {correct_answer}",
+"points_noun_singular": "point",
+"points_noun_plural": "points",
+"final_standings_heading": "Final standings:",
+"one_winner": "Champion: {}",
+"multiple_winners": "Champions: {}"
+}
+

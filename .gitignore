@@ -8,7 +8,7 @@ cai.json
 s.json
 socket_practice/*test_config.json
 # tests/*
-*.json
+/*.json
 run_client.sh
 run_server.sh
 push.sh
