@@ -1,5 +1,6 @@
 import random
 
+
 def generate_mathematics_question():
     OPERANDS_RANGE = [1, 100]
     OPERATORS = ["+", "-"]
@@ -13,7 +14,7 @@ def generate_mathematics_question():
         operands -= 1
 
     return ret
-    
+
 
 def _int_to_roman(n: int) -> str:
     ROMAN_SYMBOLS = [
@@ -39,12 +40,13 @@ def generate_roman_numerals_question():
 
     return _int_to_roman(number)
 
+
 def _generate_ip_cidr():
     BIT_RANGE = [0, 255]
     HOST_BITS_RANGE = [0, 32]
 
     ip = [str(random.randint(*BIT_RANGE)) for _ in range(4)]
-    
+
     ret = ".".join(ip)
     ret += "/" + str(random.randint(*HOST_BITS_RANGE))
 
@@ -57,14 +59,5 @@ def generate_usable_addresses_question():
 
 def generate_network_broadcast_question():
     return _generate_ip_cidr()
-
-
-# for _ in range(10):
-#     s = generate_mathematics_question()
-
-#     print(repr(s))
-
-    
-
 
 
