@@ -1,2 +1,2 @@
 #!/bin/bash
-python3 client.py --config c.json
+python3 client.py --config config/c.json

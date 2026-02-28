@@ -21,15 +21,15 @@ COMMIT_MSG="automatic push"
 
 case "$ARG" in
   --all)
-    smart_mv "test_config.json" "no_config.json"
+    smart_mv "config/test_config.json" "config/no_config.json"
     COMMIT_MSG="$COMMIT_MSG (--all: test_config.json → no_config.json)"
     ;;
   "")
-    if [[ -e "no_config.json" ]]; then
-      smart_mv "no_config.json" "test_config.json"
+    if [[ -e "config/no_config.json" ]]; then
+      smart_mv "config/no_config.json" "config/test_config.json"
       COMMIT_MSG="$COMMIT_MSG (default: no_config.json → test_config.json)"
     else
-      echo "Note: neither no_config.json nor no_config.son found; nothing to rename." >&2
+      echo "Note: config/no_config.json not found; nothing to rename." >&2
     fi
     ;;
   *)

@@ -11,19 +11,19 @@ This repository contains an asynchronous trivia game (server + client) and autom
 
 - `server.py` — trivia server
 - `client.py` — async client (supports `you`, `auto`, `ai` modes)
-- `s.json` — sample server configuration
-- `c.json` — sample client configuration
+- `config/s.json` — sample server configuration
+- `config/c.json` — sample client configuration
 - `run_tests.sh` — helper script to run all tests
 
 ## Run the Trivia Game
 
 1. Terminal #1 — start the server:
    ```bash
-   python3 server.py --config s.json
+   python3 server.py --config config/s.json
    ```
 2. Terminal #2 — start the client:
    ```bash
-   python3 client.py --config c.json
+   python3 client.py --config config/c.json
    ```
 3. In the client prompt, connect to the server:
    ```
